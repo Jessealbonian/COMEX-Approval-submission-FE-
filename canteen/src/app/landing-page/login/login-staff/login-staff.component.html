@@ -1,0 +1,57 @@
+<div class="body">
+    <div class="container">
+        <div class="left">
+            <div class="logo-container">
+                <img src="/logo.png" alt="HotBite Logo">
+                <h3>Gordon College</h3>
+                <p>Canteen Ordering and Delivery System</p>
+            </div>
+        </div>
+        <div class="right">
+            <div class="login-form">
+                <button class="back-btn" routerLink="/home">← Back</button>
+                <h1>Login</h1>
+                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                    <div class="input-container">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="Enter your email" formControlName="email">
+                        <div *ngIf="loginForm.get('email')?.invalid && (loginForm.get('email')?.dirty || loginForm.get('email')?.touched)"
+                            class="error-messages">
+                            <small *ngIf="loginForm.get('email')?.errors?.['required']">Email is required.</small>
+                            <small *ngIf="loginForm.get('email')?.errors?.['email']">Please enter a valid email
+                                address.</small>
+                        </div>
+
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="Enter your password"
+                            formControlName="password">
+                        <div *ngIf="loginForm.get('password')?.invalid && (loginForm.get('password')?.dirty || loginForm.get('password')?.touched)"
+                            class="error-messages">
+                            <small *ngIf="loginForm.get('password')?.errors?.['required']">Password is required.</small>
+                        </div>
+                    </div>
+
+                    <div *ngIf="errorMessage" class="error-message">
+                        {{ errorMessage }}
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-login"
+                            [disabled]="loginForm.invalid || isLoading">Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loading-modal" class="loading-modal" [class.show]="isLoading">
+    <div class="loading-modal-content">
+        <div class="spinner-container">
+            <div class="spinner"></div>
+        </div>
+        <h3>Logging in...</h3>
+        <p>Please wait while we authenticate your credentials.</p>
+    </div>
+</div>

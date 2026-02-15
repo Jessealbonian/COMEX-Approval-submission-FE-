@@ -1,0 +1,488 @@
+.topnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  border-bottom: 4px solid #354f52;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.logo-section:hover {
+  background-color: #f5f5f5;
+  transform: translateY(-1px);
+}
+
+.logo-section:active {
+  transform: translateY(0);
+}
+
+.logo-section::after {
+  content: "Home";
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2c3e3f;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.logo-section:hover::after {
+  opacity: 1;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+  transition: transform 0.3s ease;
+}
+
+.logo-section:hover .logo {
+  transform: scale(1.05);
+}
+
+.app-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e3f;
+}
+
+.right-section {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+/* Desktop buttons container */
+.desktop-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.badge-parent {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropdown-item.badge-parent {
+  width: 100%;
+  justify-content: flex-start;
+  padding-right: 2.5rem;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e63946;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+.badge-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.badge-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.dropdown-item.badge-parent .badge {
+  top: 50%;
+  transform: translateY(-50%);
+  right: 14px;
+}
+
+.cart-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #2c3e3f;
+  transition: color 0.3s ease;
+}
+
+.orders-btn {
+  background: #354f52;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.volunteer-btn {
+  background: #2c3e3f;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.orders-btn:hover,
+.volunteer-btn:hover {
+  opacity: 0.95;
+}
+
+.cart-btn:hover {
+  color: #1f2d2e;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  position: relative;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.user-section:hover {
+  background-color: #f5f5f5;
+}
+
+.profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.user-section:hover .profile-pic {
+  border-color: #354f52;
+}
+
+.username {
+  font-weight: 500;
+  color: #2c3e3f;
+}
+
+.dropdown-arrow {
+  width: 16px;
+  height: 16px;
+  color: #2c3e3f;
+  stroke: #2c3e3f;
+  transition: transform 0.3s ease, color 0.3s ease;
+  flex-shrink: 0;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.user-section:hover .dropdown-arrow {
+  color: #354f52;
+  stroke: #354f52;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0;
+  min-width: 200px;
+  display: none;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: #2c3e3f;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* Mobile buttons - hidden on larger screens */
+.mobile-buttons {
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  margin: 0.5rem 0;
+}
+
+.mobile-buttons .dropdown-item {
+  font-size: 0.95rem;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 1024px) {
+  .desktop-buttons {
+    gap: 1rem;
+  }
+
+  .volunteer-btn {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.7rem;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .topnav {
+    padding: 1rem;
+  }
+
+  .logo-section {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .logo-section::after {
+    display: none;
+  }
+
+  .logo {
+    height: 35px;
+  }
+
+  .app-name {
+    display: none;
+  }
+
+  .username {
+    display: none;
+  }
+
+  .user-section {
+    padding: 0.4rem 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .profile-pic {
+    width: 36px;
+    height: 36px;
+  }
+
+  .dropdown-arrow {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Hide desktop buttons on mobile */
+  .desktop-buttons {
+    display: none;
+  }
+
+  /* Show mobile buttons in dropdown */
+  .mobile-buttons {
+    display: block;
+  }
+
+  .right-section {
+    gap: 1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .topnav {
+    padding: 0.75rem;
+  }
+
+  .logo-section {
+    padding: 0.3rem 0.5rem;
+  }
+
+  .logo {
+    height: 32px;
+  }
+
+  .user-section {
+    padding: 0.3rem 0.4rem;
+  }
+
+  .profile-pic {
+    width: 32px;
+    height: 32px;
+  }
+
+  .dropdown-arrow {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  /* Hide mobile buttons on desktop */
+  .mobile-buttons {
+    display: none;
+  }
+
+  /* Show desktop buttons */
+  .desktop-buttons {
+    display: flex;
+  }
+}
+
+/* Availability Toggle Styles */
+.availability-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.availability-label-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2c3e3f;
+  white-space: nowrap;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.2s;
+  border-radius: 28px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #52796f;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* Mobile availability toggle in dropdown */
+.availability-toggle-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.availability-label-text-mobile {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #2c3e3f;
+  flex: 1;
+}
+
+.availability-status-mobile {
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 600;
+  min-width: 100px;
+  text-align: right;
+}
+
+/* Responsive adjustments for availability toggle */
+@media screen and (max-width: 1024px) {
+  .availability-toggle-container {
+    padding: 0.4rem 0.7rem;
+    gap: 0.6rem;
+  }
+
+  .availability-label-text {
+    font-size: 0.85rem;
+  }
+
+  .switch {
+    width: 45px;
+    height: 25px;
+  }
+
+  .slider:before {
+    height: 19px;
+    width: 19px;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .availability-toggle-container {
+    display: none;
+  }
+}

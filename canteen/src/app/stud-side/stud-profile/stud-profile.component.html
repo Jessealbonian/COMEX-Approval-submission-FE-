@@ -1,0 +1,231 @@
+<app-topnav></app-topnav>
+
+<div class="profile-container">
+    <div class="profile-card">
+        <!-- Header -->
+        <div class="profile-header">
+            <h1>Student Profile</h1>
+        </div>
+
+        <!-- Profile Picture -->
+        <div class="profile-picture">
+            <img src="/gclogo.png" alt="Profile Picture" class="profile-img">
+        </div>
+
+        <!-- Profile Information -->
+        <div class="profile-info">
+            <hr class="divider">
+
+            <div class="info-row">
+                <span class="info-label">Full Name:</span>
+                <div class="info-value">
+                    <span>{{studentProfile.fullName}}</span>
+                </div>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Phone:</span>
+                <div class="info-value">
+                    <input *ngIf="isEditing" type="tel" [(ngModel)]="studentProfile.phone" class="edit-input"
+                        placeholder="Enter phone number">
+                    <span *ngIf="!isEditing">{{studentProfile.phone}}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="profile-actions">
+            <button *ngIf="!isEditing" (click)="toggleEdit()" class="edit-btn">
+                Edit Profile
+            </button>
+
+            <div *ngIf="isEditing" class="edit-actions">
+                <button (click)="cancelEdit()" class="cancel-btn">Cancel</button>
+                <button (click)="toggleEdit()" class="save-btn">Save Changes</button>
+            </div>
+        </div>
+
+        <!-- PWA Install Button -->
+        <div class="pwa-install-section">
+            <hr class="divider" />
+            <div class="pwa-install-content">
+                <div class="pwa-info">
+                    <h3>Install HotBite App</h3>
+                    <p>{{ getInstallDescription() }}</p>
+                </div>
+                <button (click)="installApp()" class="install-btn" [class.installed]="isInstalled"
+                    [class.unavailable]="!isInstalled && !canInstall">
+                    <span class="material-icons">{{ getInstallButtonIcon() }}</span>
+                    {{ getInstallButtonText() }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Volunteer Section -->
+        <div class="volunteer-section">
+            <hr class="divider" />
+            <h2>Volunteer Program</h2>
+            <div class="volunteer-description">
+                <p>Join our volunteer program to help deliver orders and support the canteen operations. Volunteers
+                    assist in processing orders faster and ensuring timely delivery to students across campus.</p>
+                <p style="margin-top: 12px;">
+                    <a (click)="openVolunteerTerms()" class="volunteer-terms-link">View Volunteer Program Terms &
+                        Conditions</a>
+                </p>
+            </div>
+            <div *ngIf="myVolunteer?.role !== 'volunteer'; else volunteerControls">
+                <!-- Pending Application -->
+                <div *ngIf="myVolunteer?.application_status === 'pending'" class="application-status pending">
+                    <p><strong>Your application is pending review.</strong></p>
+                    <p class="status-note">We'll notify you once your application has been reviewed by our staff.</p>
+                </div>
+
+                <!-- Rejected Application -->
+                <div *ngIf="myVolunteer?.application_status === 'rejected'" class="application-status rejected">
+                    <p><strong>Your previous application was not approved.</strong></p>
+                    <p class="status-note">Don't worry! You can apply again. Please review the volunteer program
+                        description and submit a new application.</p>
+                    <button class="apply-again-btn" [disabled]="applying" (click)="applyAsVolunteer()">
+                        <span *ngIf="!applying">Apply Again</span>
+                        <span *ngIf="applying">Submitting...</span>
+                    </button>
+                </div>
+
+                <!-- No Application Yet -->
+                <div *ngIf="!myVolunteer?.application_status" class="application-status">
+                    <button class="save-btn" [disabled]="applying" (click)="applyAsVolunteer()">
+                        <span *ngIf="!applying">Apply as Volunteer</span>
+                        <span *ngIf="applying">Submitting...</span>
+                    </button>
+                </div>
+            </div>
+            <ng-template #volunteerControls>
+                <div class="availability-row">
+                    <span class="info-label">Availability:</span>
+                    <label class="switch">
+                        <input type="checkbox" [checked]="myVolunteer.is_available || false"
+                            (change)="toggleAvailability()" />
+                        <span class="slider"></span>
+                    </label>
+                    <span class="availability-label">{{ (myVolunteer.is_available || false) ? 'Available' : 'Not
+                        Available'
+                        }}</span>
+                </div>
+                
+                <!-- Availability Schedule Section -->
+                <div class="availability-schedule-section">
+                    <h3 class="schedule-title">Availability Schedule</h3>
+                    <p class="schedule-description">Set your preferred availability time range for deliveries.</p>
+                    <div class="schedule-form">
+                        <div class="schedule-row">
+                            <div class="schedule-field">
+                                <label for="startTime">Start Time:</label>
+                                <input 
+                                    type="time" 
+                                    id="startTime" 
+                                    [(ngModel)]="availabilitySchedule.startTime"
+                                    class="time-input"
+                                    [disabled]="!isEditingSchedule"
+                                />
+                            </div>
+                            <div class="schedule-field">
+                                <label for="endTime">End Time:</label>
+                                <input 
+                                    type="time" 
+                                    id="endTime" 
+                                    [(ngModel)]="availabilitySchedule.endTime"
+                                    class="time-input"
+                                    [disabled]="!isEditingSchedule"
+                                />
+                            </div>
+                        </div>
+                        <div class="schedule-actions">
+                            <button 
+                                *ngIf="!isEditingSchedule" 
+                                (click)="startEditingSchedule()" 
+                                class="edit-schedule-btn"
+                            >
+                                Edit Schedule
+                            </button>
+                            <div *ngIf="isEditingSchedule" class="schedule-edit-actions">
+                                <button (click)="cancelEditingSchedule()" class="cancel-schedule-btn">Cancel</button>
+                                <button (click)="saveSchedule()" class="save-schedule-btn">Save Schedule</button>
+                            </div>
+                        </div>
+                        <div *ngIf="!isEditingSchedule" class="schedule-display">
+                            <p class="schedule-info" *ngIf="availabilitySchedule.startTime || availabilitySchedule.endTime">
+                                <strong>Current Schedule:</strong> 
+                                {{ formatTime(availabilitySchedule.startTime) || 'Not set' }} - 
+                                {{ formatTime(availabilitySchedule.endTime) || 'Not set' }}
+                            </p>
+                            <p class="schedule-info" *ngIf="!availabilitySchedule.startTime && !availabilitySchedule.endTime" style="color: #999; font-style: italic;">
+                                No schedule set. Click "Edit Schedule" to set your availability times.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </ng-template>
+        </div>
+    </div>
+</div>
+
+<!-- Volunteer Terms & Conditions Modal -->
+<div id="volunteer-terms-modal" class="tw-modal"
+    (click)="$event.target === $event.currentTarget && closeVolunteerTerms()">
+    <div class="tw-modal-box">
+        <button class="tw-close" (click)="closeVolunteerTerms()">×</button>
+        <h2 class="tw-title">Student Volunteer Terms and Conditions</h2>
+        <div class="tw-content">
+            <p style="margin-bottom: 16px;">By joining the HotBite Volunteer Delivery Program, you agree to the
+                following terms:</p>
+
+            <h3>1. Volunteer Conduct and Responsibility</h3>
+            <p>You agree to perform deliveries professionally, follow campus policies, and handle every assigned order
+                with care and accuracy.</p>
+
+            <h3>2. Availability and Assignment Confirmation</h3>
+            <p>When you switch your status to Available, you indicate that you are ready to receive potential delivery
+                tasks.</p>
+            <p>A confirmation modal will appear when an order delivery is offered to you. You must manually Accept or
+                Decline every delivery assignment.</p>
+            <p>Selecting Accept Delivery confirms your commitment to complete the task.</p>
+            <p>Selecting Decline informs the staff that you are unable to take that specific task.</p>
+            <p>Failing to respond repeatedly or declining excessively may result in a review of your volunteer status.
+            </p>
+
+            <h3>3. Delivery Responsibilities</h3>
+            <p>Once you accept an order delivery, you are responsible for completing the delivery within the expected
+                timeframe. Only 20 minutes are allotted after the preferred time set for the order to complete and
+                deliver it. Any sudden issues or delays must be reported immediately to the canteen staff.</p>
+
+            <h3>4. Prohibited Actions</h3>
+            <p>You agree not to:</p>
+            <ul>
+                <li>Mark orders as delivered without completing them</li>
+                <li>Accept order deliveries you cannot fulfill</li>
+                <li>Misuse the availability toggle to avoid or manipulate tasks</li>
+                <li>Delay or tamper with the order assignment process</li>
+                <li>Attempt to accept deliveries while having active personal orders</li>
+            </ul>
+
+            <h3>5. Safety and Proper Conduct</h3>
+            <p>You must carry out deliveries safely and with proper behavior around campus.</p>
+
+            <h3>6. Data Use and Privacy</h3>
+            <p>Your availability, task confirmations, and delivery performance may be collected for system management
+                and fairness. Your personal data is handled according to the system's Data Privacy Policy.</p>
+
+            <h3>7. Suspension or Removal</h3>
+            <p>The administrators may suspend or remove volunteer access for repeated misconduct, declines without
+                reason, task avoidance, or violation of these terms.</p>
+
+            <h3>8. Updates to Terms</h3>
+            <p>These Terms may be updated. By continuing to serve as a volunteer, you agree to any future revisions.</p>
+        </div>
+        <div class="tw-footer">
+            <button class="tw-btn" (click)="closeVolunteerTerms()">Close</button>
+        </div>
+    </div>
+</div>
+
+<app-footer></app-footer>

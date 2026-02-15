@@ -1,0 +1,132 @@
+<app-topnav-staff></app-topnav-staff>
+<app-sidenav></app-sidenav>
+
+<div class="container-body">
+    <div class="content">
+        <div class="header">
+            <h2>User Management</h2>
+            <button class="btn primary" (click)="openCreateModal()">Add User</button>
+        </div>
+
+        <div class="filters">
+            <input type="text" placeholder="Search by name or email" [(ngModel)]="searchQuery"
+                (ngModelChange)="onSearchChange()" />
+            <select [(ngModel)]="roleFilter" (change)="onRoleFilterChange()">
+                <option value="">All roles</option>
+                <option value="student">Student</option>
+                <option value="staff">Staff</option>
+                <option value="volunteer">Volunteer</option>
+            </select>
+        </div>
+
+        <div *ngIf="error" class="error">{{ error }}</div>
+
+        <div class="table-wrapper" *ngIf="!loading; else loadingTpl">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let u of users">
+                        <td>{{ u.name }}</td>
+                        <td>{{ u.email }}</td>
+                        <td class="capitalize">{{ u.role }}</td>
+                        <td>{{ u.phone_no || '-' }}</td>
+                        <td>{{ u.status }}</td>
+                        <td class="row-actions">
+                            <button class="btn sm" (click)="openEditModal(u)">Edit</button>
+                            <button class="btn sm danger" (click)="confirmDelete(u)">Delete</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination" *ngIf="!loading && users.length > 0">
+            <div class="pagination-info">
+                Showing {{ (page - 1) * limit + 1 }} to {{ Math.min(page * limit, total) }} of {{ total }} users
+            </div>
+            <div class="pagination-controls">
+                <button class="btn sm" [disabled]="page === 1" (click)="goToPage(page - 1)">
+                    Previous
+                </button>
+                <button class="btn sm page-btn" *ngFor="let p of getPageNumbers()" [class.active]="p === page"
+                    (click)="goToPage(p)">
+                    {{ p }}
+                </button>
+                <button class="btn sm" [disabled]="page >= getTotalPages()" (click)="goToPage(page + 1)">
+                    Next
+                </button>
+            </div>
+        </div>
+
+        <ng-template #loadingTpl>
+            <div class="loading">Loading users...</div>
+        </ng-template>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-backdrop" *ngIf="showFormModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>{{ isEditing ? 'Edit User' : 'Add User' }}</h3>
+                <button class="icon" (click)="closeFormModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid">
+                    <label>
+                        <span>Name</span>
+                        <input type="text" [(ngModel)]="form.name" />
+                    </label>
+
+                    <label>
+                        <span>Email</span>
+                        <input type="email" [(ngModel)]="form.email" />
+                    </label>
+
+                    <label>
+                        <span>Password</span>
+                        <input type="password" [(ngModel)]="form.password"
+                            [placeholder]="isEditing ? 'Leave blank to keep current' : ''" />
+                    </label>
+
+                    <label>
+                        <span>Contact Number</span>
+                        <input type="text" [(ngModel)]="form.phone_no" placeholder="09XXXXXXXXX or +63..." />
+                    </label>
+
+                    <label>
+                        <span>Role</span>
+                        <select [(ngModel)]="form.role">
+                            <option value="student">Student</option>
+                            <option value="staff">Staff</option>
+                            <option value="volunteer">Volunteer</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Status</span>
+                        <select [(ngModel)]="form.status">
+                            <option value="approved">Approved</option>
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" (click)="closeFormModal()">Cancel</button>
+                <button class="btn primary" (click)="saveUser()">{{ isEditing ? 'Save Changes' : 'Create User'
+                    }}</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,14 @@
+footer {
+  background-color: #354F52;
+  color: white;
+  text-align: center;
+  padding: 1rem 0;
+  position: relative;
+  width: 100%;
+  margin-top: auto; /* Push footer to bottom */
+  flex-shrink: 0; /* Prevent footer from shrinking */
+}
+
+footer p {
+  margin: 0;
+}

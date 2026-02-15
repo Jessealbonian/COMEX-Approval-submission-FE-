@@ -1,0 +1,269 @@
+<app-topnav-staff></app-topnav-staff>
+<app-sidenav></app-sidenav>
+
+<div class="container-body">
+    <h1 class="page-title">Volunteers Management</h1>
+    <div class="cards">
+        <div class="card">
+            <!-- Orders for Delivery Section -->
+            <div class="orders-section">
+                <h3>Orders For Delivery (Unassigned)</h3>
+                <p class="section-description">Assign volunteers to delivery orders that are ready for pickup.</p>
+                <!-- Orders content -->
+                <div *ngIf="ordersForDelivery.length; else noOrders">
+                    <!-- Desktop view -->
+                    <table class="table desktop-only">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Preferred Time</th>
+                                <th>Room</th>
+                                <th>Offer</th>
+                                <th>Assign</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let o of ordersForDelivery">
+                                <td>{{o.order_id}}</td>
+                                <td>{{o.name}}</td>
+                                <td>{{o.status}}</td>
+                                <td>{{formatTimeToAMPM(o.preferred_time) || '—'}}</td>
+                                <td>{{o.delivery_room || '—'}}</td>
+                                <td>
+                                    <span [class]="offerStatusClass(o)">{{offerStatusLabel(o)}}</span>
+                                    <div class="offer-expiry" *ngIf="o.offer_expires_at && isOfferPending(o)">
+                                        Expires: {{o.offer_expires_at | date:'shortTime'}}
+                                    </div>
+                                </td>
+                                <td>
+                                    <select #sel>
+                                        <option *ngFor="let v of availableVolunteers" [value]="v.user_id">{{v.name}}
+                                        </option>
+                                    </select>
+                                    <button [disabled]="isOfferPending(o)" (click)="assign(o.order_id, +sel.value)">Send
+                                        Offer</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile view -->
+                    <div class="delivery-cards mobile-only">
+                        <div class="delivery-card" *ngFor="let o of ordersForDelivery">
+                            <div class="card-header">
+                                <span class="order-id">#{{o.order_id}}</span>
+                                <span class="status-badge">{{o.status}}</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-group">
+                                    <div class="info-row">
+                                        <span class="label">Student:</span>
+                                        <span class="value">{{o.name}}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">Time:</span>
+                                        <span class="value">{{formatTimeToAMPM(o.preferred_time) || '—'}}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">Room:</span>
+                                        <span class="value">{{o.delivery_room || '—'}}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">Offer:</span>
+                                        <span class="value">
+                                            <span [class]="offerStatusClass(o)">{{offerStatusLabel(o)}}</span>
+                                            <small *ngIf="o.offer_expires_at && isOfferPending(o)"> (Expires
+                                                {{o.offer_expires_at | date:'shortTime'}})</small>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="assign-section">
+                                    <select #sel class="full-width">
+                                        <option value="" disabled selected>Select volunteer</option>
+                                        <option *ngFor="let v of availableVolunteers" [value]="v.user_id">{{v.name}}
+                                        </option>
+                                    </select>
+                                    <button class="assign-btn" [disabled]="isOfferPending(o)"
+                                        (click)="assign(o.order_id, +sel.value)">Send Offer</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <ng-template #noOrders>
+                    <p>No unassigned delivery orders pending.</p>
+                </ng-template>
+            </div>
+
+            <!-- Available Volunteers Section -->
+            <div class="volunteers-section">
+                <h3>Available Volunteers</h3>
+                <ul class="list">
+                    <li *ngFor="let v of availableVolunteers" class="volunteer-item">
+                        <div class="volunteer-info">
+                            <span class="status-indicator"></span>
+                            <span class="volunteer-name">{{v.name}}</span>
+                            <span class="volunteer-details">— {{v.phone_no}}</span>
+                            <span *ngIf="v.availability_start_time || v.availability_end_time" class="volunteer-schedule">
+                                ({{formatTimeToAMPM(v.availability_start_time) || 'Not set'}} - {{formatTimeToAMPM(v.availability_end_time) || 'Not set'}})
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Currently Assigned Orders</h2>
+            <!-- Assigned orders content -->
+            <div *ngIf="assignedOrders.length; else noAssignedOrders">
+                <!-- Desktop view -->
+                <table class="table desktop-only">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Student</th>
+                            <th>Status</th>
+                            <th>Preferred Time</th>
+                            <th>Room</th>
+                            <th>Assigned To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let o of assignedOrders">
+                            <td>{{o.order_id}}</td>
+                            <td>{{o.name}}</td>
+                            <td>{{o.status}}</td>
+                            <td>{{formatTimeToAMPM(o.preferred_time) || '—'}}</td>
+                            <td>{{o.delivery_room || '—'}}</td>
+                            <td>{{o.volunteer_name || getVolunteerName(o.volunteer_id)}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Mobile view -->
+                <div class="assigned-cards mobile-only">
+                    <div class="delivery-card" *ngFor="let o of assignedOrders">
+                        <div class="card-header">
+                            <span class="order-id">#{{o.order_id}}</span>
+                            <span class="status-badge">{{o.status}}</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="info-group">
+                                <div class="info-row">
+                                    <span class="label">Student:</span>
+                                    <span class="value">{{o.name}}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Time:</span>
+                                    <span class="value">{{formatTimeToAMPM(o.preferred_time) || '—'}}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Room:</span>
+                                    <span class="value">{{o.delivery_room || '—'}}</span>
+                                </div>
+                                <div class="info-row volunteer-info">
+                                    <span class="label">Assigned To:</span>
+                                    <span class="value highlight">{{o.volunteer_name ||
+                                        getVolunteerName(o.volunteer_id)}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <ng-template #noAssignedOrders>
+                <p>No orders currently assigned to volunteers.</p>
+            </ng-template>
+        </div>
+
+        <div class="card">
+            <h2>Delivery Fee Settings</h2>
+            <p class="section-description">Configure the delivery fee that will be charged to students for delivery
+                orders.</p>
+            <div class="delivery-fee-section">
+                <div class="fee-display">
+                    <label for="deliveryFee">Current Delivery Fee:</label>
+                    <div class="fee-input-group">
+                        <span class="currency-symbol">₱</span>
+                        <input type="number" id="deliveryFee" [(ngModel)]="deliveryFeeInput" min="0" step="0.01"
+                            class="fee-input" placeholder="0.00" />
+                    </div>
+                </div>
+                <button class="update-fee-btn" (click)="updateDeliveryFee()">Update Delivery Fee</button>
+                <p class="fee-note">The current delivery fee is <strong>₱{{deliveryFee.toFixed(2)}}</strong>. This will
+                    be applied to all new delivery orders.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Volunteer Applications</h2>
+            <div class="application-tabs">
+                <button [class.active]="applicationTab === 'pending'" (click)="applicationTab = 'pending'">Pending
+                    Applications</button>
+                <button [class.active]="applicationTab === 'approved'" (click)="applicationTab = 'approved'">Approved
+                    Applications</button>
+            </div>
+
+            <!-- Applications content -->
+            <div *ngIf="getFilteredApplications().length; else noFilteredApps">
+                <!-- Desktop view -->
+                <div class="desktop-only">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Applied</th>
+                                <th *ngIf="applicationTab === 'pending'">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let a of getFilteredApplications()">
+                                <td>{{a.name}}</td>
+                                <td>{{a.phone_no}}</td>
+                                <td>{{a.applied_at | date:'short'}}</td>
+                                <td *ngIf="applicationTab === 'pending'">
+                                    <button class="approve-btn" (click)="approve(a.application_id)">Approve</button>
+                                    <button class="reject-btn" (click)="reject(a.application_id)">Decline</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile view -->
+                <div class="applications-grid mobile-only">
+                    <div class="application-card" *ngFor="let a of getFilteredApplications()">
+                        <div class="card-header">
+                            <h3>{{a.name}}</h3>
+                            <span class="status-pill" [class.approved]="a.status === 'approved'"
+                                [class.pending]="a.status === 'pending'">{{a.status}}</span>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-row">
+                                <span class="label">Phone:</span>
+                                <span class="value">{{a.phone_no}}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Applied:</span>
+                                <span class="value">{{a.applied_at | date:'short'}}</span>
+                            </div>
+                        </div>
+                        <div class="application-actions" *ngIf="applicationTab === 'pending'">
+                            <button class="approve-btn" (click)="approve(a.application_id)">Approve</button>
+                            <button class="reject-btn" (click)="reject(a.application_id)">Decline</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <ng-template #noFilteredApps>
+                <p *ngIf="applicationTab === 'pending'">No pending applications.</p>
+                <p *ngIf="applicationTab === 'approved'">No approved applications.</p>
+            </ng-template>
+        </div>
+    </div>
+</div>

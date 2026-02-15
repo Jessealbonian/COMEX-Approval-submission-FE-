@@ -1,0 +1,20 @@
+<nav class="topnav">
+    <div class="logo-section">
+        <img src="/logo.png" alt="HotBite Logo" class="logo">
+    </div>
+
+    <div class="right-section">
+        <div class="user-section" (click)="toggleDropdown()">
+            <span class="username">{{ username }}</span>
+            <img src="/pfp.png" alt="User Profile" class="profile-pic">
+            <svg class="dropdown-arrow" [class.open]="isDropdownOpen" xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <div class="dropdown-menu" [class.show]="isDropdownOpen">
+                <a href="#" class="dropdown-item" (click)="logout($event)">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>

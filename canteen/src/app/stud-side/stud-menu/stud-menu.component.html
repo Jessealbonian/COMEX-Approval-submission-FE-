@@ -1,0 +1,166 @@
+<app-topnav></app-topnav>
+<div class="menu-container">
+    <div class="category-selector">
+        <div class="category-item" *ngFor="let category of categories">
+            <button [class.active]="category === currentCategory && !currentSubcategory"
+                [class.has-subcategories]="(subcategoriesMap[category] || []).length > 0"
+                (click)="toggleCategoryDropdown(category)">
+                <div class="category-text">
+                    <span class="category-name">{{category}}</span>
+                    <span class="dropdown-icon" *ngIf="(subcategoriesMap[category] || []).length > 0"
+                        [class.expanded]="expandedCategory === category">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </span>
+                </div>
+            </button>
+            <div class="subcategory-dropdown" *ngIf="expandedCategory === category">
+                <button class="subcategory-btn subcategory-all"
+                    [class.active]="currentCategory === category && !currentSubcategory"
+                    (click)="clearSubcategoryFilter()">
+                    All {{category}}
+                </button>
+                <button class="subcategory-btn"
+                    *ngFor="let sub of subcategoriesMap[category]"
+                    [class.active]="currentSubcategory === sub"
+                    (click)="setSubcategory(category, sub)">
+                    {{ sub }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="header">
+            <button class="back-button" (click)="goBack()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <h1 class="category-title">{{currentCategory}}{{ currentSubcategory ? ' • ' + currentSubcategory : '' }}
+            </h1>
+        </div>
+
+        <!-- Search and Sort Section -->
+        <div class="search-sort-section">
+            <!-- Search Bar -->
+            <div class="search-container">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" class="search-input" placeholder="Search products by name, category, or price..."
+                    [(ngModel)]="searchQuery" (input)="onSearchChange()" />
+                <button class="search-clear-btn" *ngIf="searchQuery" (click)="clearSearch()" title="Clear search">
+                    ×
+                </button>
+            </div>
+
+            <!-- Sort Dropdown -->
+            <div class="sort-controls">
+                <label for="sortBy">Sort by:</label>
+                <select id="sortBy" [(ngModel)]="sortBy" (change)="onSortChange()">
+                    <option value="date">Date Added (Newest First)</option>
+                    <option value="name">Name (A–Z)</option>
+                    <option value="price-low-high">Price: Lowest to Highest</option>
+                    <option value="price-high-low">Price: Highest to Lowest</option>
+                    <option value="stock">Stock (Highest First)</option>
+                    <option value="popular">Most Popular</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Mobile Subcategory Filter (visible only on mobile) -->
+        <div class="mobile-subcategory-filter" *ngIf="(subcategoriesMap[currentCategory] || []).length > 0">
+            <div class="filter-header">
+                <span class="filter-title">Filter by:</span>
+            </div>
+            <div class="filter-options">
+                <label class="filter-checkbox">
+                    <input type="radio" 
+                        name="subcategory-filter"
+                        [checked]="!currentSubcategory"
+                        (change)="clearSubcategoryFilter()">
+                    <span class="checkbox-label">All {{currentCategory}}</span>
+                </label>
+                <label class="filter-checkbox" *ngFor="let sub of subcategoriesMap[currentCategory]">
+                    <input type="radio" 
+                        name="subcategory-filter"
+                        [checked]="currentSubcategory === sub"
+                        (change)="setSubcategory(currentCategory, sub)">
+                    <span class="checkbox-label">{{sub}}</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="products-grid">
+            <div class="product-card" *ngFor="let product of getProductsByCategory(currentCategory)"
+                (click)="openModal(product)" [class.disabled]="product.stock !== undefined && product.stock <= 0">
+                <div class="product-image">
+                    <img [src]="product.image" [alt]="product.name">
+                </div>
+                <div class="product-label">
+                    <h3>{{product.name}}</h3>
+                    <p class="price">₱{{product.price}}</p>
+                    <p class="stock">
+                        <ng-container *ngIf="product.stock !== undefined && product.stock > 0; else outOfStock">
+                            Stock: {{product.stock}}
+                        </ng-container>
+                        <ng-template #outOfStock>
+                            <span class="out">Out of Stock</span>
+                        </ng-template>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Empty state message when no products in category -->
+            <div class="empty-state" *ngIf="getProductsByCategory(currentCategory).length === 0 && !isLoading">
+                <div class="empty-state-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                </div>
+                <h3 class="empty-state-title">No items available in this category</h3>
+                <p class="empty-state-text">Please check again later.</p>
+            </div>
+        </div>
+    </div>
+</div>
+<app-footer></app-footer>
+
+<!-- Confirm Order Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <button class="close-button" (click)="closeModal()">×</button>
+        <h2 class="modal-title">Confirm Order</h2>
+
+        <div class="modal-body">
+            <div class="modal-row">
+                <div class="modal-column">
+                    <h3>Product Name</h3>
+                    <p>{{selectedProduct?.name}}</p>
+                </div>
+                <div class="modal-column">
+                    <h3>Quantity</h3>
+                    <div class="quantity-controls">
+                        <button (click)="decreaseQuantity()">-</button>
+                        <span>{{quantity}}</span>
+                        <button (click)="increaseQuantity()">+</button>
+                    </div>
+                </div>
+                <div class="modal-column">
+                    <h3>Price</h3>
+                    <p>₱{{selectedProduct?.price * quantity}}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="cancel-button" (click)="closeModal()">Cancel</button>
+            <button class="confirm-button" (click)="confirmOrder()">Confirm</button>
+        </div>
+    </div>
+</div>

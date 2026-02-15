@@ -1,0 +1,416 @@
+/* About Page Styles */
+:host {
+  display: block;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f5f8f7 0%, #eef4f3 100%);
+}
+
+.about-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Hero Section */
+.about-hero {
+  color: #354f52;
+  padding: 4rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.about-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="60" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.page-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  margin-bottom: 1rem;
+  line-height: 1.1;
+}
+
+.page-subtitle {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  opacity: 0.9;
+  font-weight: 300;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.page-subtitle-green {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  color: #354f52;
+  font-weight: 500;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Content Wrapper */
+.content-wrapper {
+  padding: 3rem 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Content Sections */
+.content-section {
+  margin-bottom: 3rem;
+}
+
+.section-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(53, 79, 82, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.section-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+.section-title {
+  color: #1f2e2d;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+.section-title::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #354f52, #2e5d52);
+  border-radius: 2px;
+}
+
+.section-text {
+  color: #556968;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* Features List */
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f8faf9;
+  border-radius: 12px;
+  border-left: 4px solid #354f52;
+  transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+  background: #f0f4f2;
+  transform: translateX(8px);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.feature-content h3 {
+  color: #1f2e2d;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.feature-content p {
+  color: #607574;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Target Users Section */
+.target-users-content {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.target-users-text {
+  flex: 1;
+}
+
+.target-users-image {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gc-logo {
+  max-width: 200px;
+  height: auto;
+  border-radius: 12px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gc-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Image Subtitles */
+.image-subtitle {
+  color: #556968;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Beneficiary and Developer Images */
+.beneficiary-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.beneficiary-image-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  transition: transform 0.3s ease;
+}
+
+.beneficiary-image-container:hover {
+  transform: translateY(-4px);
+}
+
+.beneficiary-img {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+
+.beneficiary-img:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.developer-image-container {
+  margin-top: 2rem;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  transition: transform 0.3s ease;
+}
+
+.developer-image-container:hover {
+  transform: translateY(-4px);
+}
+
+.developer-img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+
+.developer-img:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+  .about-hero {
+    padding: 3rem 1.5rem;
+  }
+
+  .content-wrapper {
+    padding: 2rem 1.5rem;
+  }
+
+  .section-card {
+    padding: 2rem;
+  }
+
+  .feature-item {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .feature-icon {
+    align-self: center;
+  }
+
+  .target-users-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+
+  .gc-logo {
+    max-width: 150px;
+  }
+
+  .beneficiary-images {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .beneficiary-img {
+    max-width: 100%;
+  }
+
+  .developer-image-container {
+    max-width: 250px;
+  }
+}
+
+@media (max-width: 600px) {
+  .about-hero {
+    padding: 2.5rem 1rem;
+  }
+
+  .content-wrapper {
+    padding: 1.5rem 1rem;
+  }
+
+  .section-card {
+    padding: 1.5rem;
+  }
+
+  .features-list {
+    gap: 1rem;
+  }
+
+  .feature-item {
+    padding: 1rem;
+  }
+
+  .feature-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-hero {
+    padding: 2rem 0.75rem;
+  }
+
+  .content-wrapper {
+    padding: 1rem 0.75rem;
+  }
+
+  .section-card {
+    padding: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+  }
+
+  .section-text {
+    font-size: 1rem;
+  }
+
+  .feature-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .feature-content p {
+    font-size: 0.9rem;
+  }
+
+  .gc-logo {
+    max-width: 120px;
+  }
+
+  .image-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .beneficiary-img {
+    max-width: 100%;
+  }
+
+  .developer-image-container {
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 360px) {
+  .about-hero {
+    padding: 1.5rem 0.5rem;
+  }
+
+  .content-wrapper {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .section-card {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .gc-logo {
+    max-width: 100px;
+  }
+}

@@ -1,0 +1,86 @@
+<!-- Navigation -->
+<app-topnav-hero></app-topnav-hero>
+
+<!-- Hero Image Section -->
+<section class="hero-image">
+    <img src="/canteen.jpg" alt="Canteen">
+</section>
+
+<!-- Hero Content Section -->
+<section class="hero">
+    <div class="hero-content">
+        <h1 class="hero-title fade-in-up">Fast. Simple. Delivered.</h1>
+        <p class="hero-subtitle fade-in-up">Canteen Meals Made Easy. Order your favorites online with just a few clicks,
+            enjoy convenient delivery to your classroom, and choose from a variety of options.</p>
+        <div class="cta-group fade-in-up">
+            <button class="cta primary" routerLink="/login/student">Order Now</button>
+            <button class="cta" routerLink="/login/staff">Staff Login</button>
+            <!-- PWA Install Button -->
+            <button (click)="installApp()" class="cta pwa-install-cta"
+                [class.installed]="isInstalled" [class.unavailable]="!isInstalled && !canInstall">
+                <span class="material-icons">{{ getInstallButtonIcon() }}</span>
+                {{ getInstallButtonText() }}
+            </button>
+        </div>
+        <!-- <form class="lead-capture fade-in-up" (submit)="$event.preventDefault(); login()">
+            <input type="email" placeholder="Enter your school email" required>
+            <button type="submit">Get Started</button>
+        </form> -->
+    </div>
+</section>
+
+<!-- Benefits -->
+<section class="benefits">
+    <div class="benefits-container">
+        <div class="benefit">
+            <div class="icon-wrapper">
+                <div class="icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11H1l3-7h16l3 7H15" />
+                        <path d="M9 11v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-6" />
+                        <path d="M9 11V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                    </svg>
+                </div>
+            </div>
+            <h3>Easy Ordering</h3>
+            <p>Browse the menu and add to cart in seconds.</p>
+        </div>
+
+        <div class="vertical-divider"></div>
+
+        <div class="benefit">
+            <div class="icon-wrapper">
+                <div class="icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12,6 12,12 16,14" />
+                    </svg>
+                </div>
+            </div>
+            <h3>Save Time</h3>
+            <p>Skip the line with scheduled pickup or delivery.</p>
+        </div>
+
+        <div class="vertical-divider"></div>
+
+        <div class="benefit">
+            <div class="icon-wrapper">
+                <div class="icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+            </div>
+            <h3>Intuitive Interface</h3>
+            <p>Simple, user-friendly design for seamless navigation.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<app-footer-hero></app-footer-hero>
