@@ -1,86 +1,161 @@
-<!-- Navigation -->
 <app-topnav-hero></app-topnav-hero>
 
-<!-- Hero Image Section -->
-<section class="hero-image">
-    <img src="/canteen.jpg" alt="Canteen">
-</section>
+<main class="homepage">
+    <section class="hero section-reveal">
+        <div class="hero-copy">
+            <p class="eyebrow">Submission and Approval System</p>
+            <h1>
+                Shaping Young <span>Minds</span>,<br>
+                Building Bright Future
+            </h1>
+            <p class="hero-subtitle">
+                We are committed to excellence in education, character formation,
+                and lifelong learning through a simple digital-first process.
+            </p>
 
-<!-- Hero Content Section -->
-<section class="hero">
-    <div class="hero-content">
-        <h1 class="hero-title fade-in-up">Fast. Simple. Delivered.</h1>
-        <p class="hero-subtitle fade-in-up">Canteen Meals Made Easy. Order your favorites online with just a few clicks,
-            enjoy convenient delivery to your classroom, and choose from a variety of options.</p>
-        <div class="cta-group fade-in-up">
-            <button class="cta primary" routerLink="/login/student">Order Now</button>
-            <button class="cta" routerLink="/login/staff">Staff Login</button>
-            <!-- PWA Install Button -->
-            <button (click)="installApp()" class="cta pwa-install-cta"
-                [class.installed]="isInstalled" [class.unavailable]="!isInstalled && !canInstall">
-                <span class="material-icons">{{ getInstallButtonIcon() }}</span>
-                {{ getInstallButtonText() }}
-            </button>
-        </div>
-        <!-- <form class="lead-capture fade-in-up" (submit)="$event.preventDefault(); login()">
-            <input type="email" placeholder="Enter your school email" required>
-            <button type="submit">Get Started</button>
-        </form> -->
-    </div>
-</section>
+            <div class="hero-actions">
+                <button class="btn btn-primary" routerLink="/login/student">Get Started</button>
+                <button class="btn btn-outline" routerLink="/login/staff">Staff Login</button>
+                <button class="btn btn-install" (click)="installApp()" [class.installed]="isInstalled"
+                    [class.unavailable]="!isInstalled && !canInstall">
+                    <span class="material-icons">{{ getInstallButtonIcon() }}</span>
+                    {{ getInstallButtonText() }}
+                </button>
+            </div>
 
-<!-- Benefits -->
-<section class="benefits">
-    <div class="benefits-container">
-        <div class="benefit">
-            <div class="icon-wrapper">
-                <div class="icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 11H1l3-7h16l3 7H15" />
-                        <path d="M9 11v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-6" />
-                        <path d="M9 11V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                    </svg>
+            <div class="partners">
+                <p>Partnered by</p>
+                <div class="partner-logos">
+                    <img src="/MATATAG_Full_Color_1_500x153_c34acabdc7.png" alt="MATATAG" class="partner-logo">
+                    <img src="/DEPED-BP-MATATAG.png" alt="DepEd BP MATATAG" class="partner-logo partner-logo-deped">
+                    <img src="/Havendrivers 1.png" alt="Havendrivers" class="partner-logo partner-logo-havendrivers">
                 </div>
             </div>
-            <h3>Easy Ordering</h3>
-            <p>Browse the menu and add to cart in seconds.</p>
         </div>
 
-        <div class="vertical-divider"></div>
+        <div class="hero-visual">
+            <img class="hero-visual-image" src="/ilalim landing.png" alt="Ilalim Elementary School landing collage">
+        </div>
+    </section>
 
-        <div class="benefit">
-            <div class="icon-wrapper">
-                <div class="icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12,6 12,12 16,14" />
-                    </svg>
-                </div>
+    <section class="foundation section-reveal">
+        <div class="foundation-intro">
+            <h2>Our Foundation</h2>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            </p>
+        </div>
+
+        <div class="foundation-cards">
+            <article class="foundation-card">
+                <img src="/foundation/idea.png" alt="Vision icon" class="foundation-icon">
+                <h3>DepEd Vision</h3>
+                <a href="javascript:void(0)">Learn More</a>
+            </article>
+            <article class="foundation-card active">
+                <img src="/foundation/mission-statement.png" alt="Mission icon" class="foundation-icon">
+                <h3>DepEd Mission</h3>
+                <a href="javascript:void(0)">Learn More</a>
+            </article>
+            <article class="foundation-card">
+                <img src="/foundation/values.png" alt="Core values icon" class="foundation-icon">
+                <h3>DepEd Core Values</h3>
+                <a href="javascript:void(0)">Learn More</a>
+            </article>
+        </div>
+    </section>
+
+    <section class="overview section-reveal">
+        <div class="overview-heading">
+            <h2>lorem ipsum</h2>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris.</p>
+        </div>
+
+        <div class="overview-content">
+            <div class="overview-media">
+                <img src="/canteen.jpg" alt="School campus">
+                <button class="play-btn" aria-label="Play video">▶</button>
             </div>
-            <h3>Save Time</h3>
-            <p>Skip the line with scheduled pickup or delivery.</p>
-        </div>
 
-        <div class="vertical-divider"></div>
-
-        <div class="benefit">
-            <div class="icon-wrapper">
-                <div class="icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                        <path d="M2 17l10 5 10-5" />
-                        <path d="M2 12l10 5 10-5" />
-                    </svg>
-                </div>
+            <div class="overview-list">
+                <article>
+                    <span>1</span>
+                    <div>
+                        <h4>Activities</h4>
+                        <p>Track every request and document with clear, transparent status updates.</p>
+                    </div>
+                </article>
+                <article>
+                    <span>2</span>
+                    <div>
+                        <h4>Professionalism</h4>
+                        <p>Review workflows help maintain quality, consistency, and accountability.</p>
+                    </div>
+                </article>
+                <article>
+                    <span>3</span>
+                    <div>
+                        <h4>Events</h4>
+                        <p>Generate reports to identify trends and improve planning for school programs.</p>
+                    </div>
+                </article>
             </div>
-            <h3>Intuitive Interface</h3>
-            <p>Simple, user-friendly design for seamless navigation.</p>
         </div>
-    </div>
-</section>
+    </section>
 
-<!-- Footer -->
+    <section class="process section-reveal">
+        <div class="process-intro">
+            <p>How It Works</p>
+            <h2>Simple 3-Step Process</h2>
+            <p>
+                Submit, review, and approve in a streamlined flow designed for speed and clarity.
+            </p>
+        </div>
+
+        <div class="steps">
+            <article class="step-card">
+                <small>ST 01</small>
+                <h3>Upload Required Document</h3>
+            </article>
+            <article class="step-card">
+                <small>ST 02</small>
+                <h3>Administrator Reviews Submission</h3>
+            </article>
+            <article class="step-card">
+                <small>ST 03</small>
+                <h3>Approval or Feedback Is Sent</h3>
+            </article>
+        </div>
+    </section>
+
+    <section class="faq section-reveal">
+        <h2>Frequently Asked Questions</h2>
+        <p>Ask your questions</p>
+
+        <details open>
+            <summary>Lorem ipsum dolor sit amet consectetur adipiscing elit. Mauris</summary>
+            <p>This section can contain your real answer text for the first question.</p>
+        </details>
+        <details>
+            <summary>Lorem ipsum dolor sit amet consectetur adipiscing elit. Mauris</summary>
+            <p>This section can contain your real answer text for the second question.</p>
+        </details>
+        <details>
+            <summary>Lorem ipsum dolor sit amet consectetur adipiscing elit. Mauris</summary>
+            <p>This section can contain your real answer text for the third question.</p>
+        </details>
+        <details>
+            <summary>Lorem ipsum dolor sit amet consectetur adipiscing elit. Mauris</summary>
+            <p>This section can contain your real answer text for the fourth question.</p>
+        </details>
+    </section>
+
+    <section class="cta-band section-reveal">
+        <div>
+            <h3>Something message something message something</h3>
+        </div>
+        <button class="btn btn-cta">CTA BUTTON</button>
+    </section>
+</main>
+
 <app-footer-hero></app-footer-hero>
