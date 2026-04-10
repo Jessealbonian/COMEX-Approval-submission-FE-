@@ -12,6 +12,8 @@ import { StudCartComponent } from './stud-side/stud-cart/stud-cart.component';
 import { StudProfileComponent } from './stud-side/stud-profile/stud-profile.component';
 import { StudOrdersComponent } from './stud-side/stud-orders/stud-orders.component';
 import { VolunteerOrdersComponent } from './stud-side/volunteer-orders/volunteer-orders.component';
+import { DocumentComponent } from './stud-side/document/document.component';
+import { DocumenttableComponent } from './stud-side/documenttable/documenttable.component';
 import { StaffDashboardComponent } from './staff-side/staff-dashboard/staff-dashboard.component';
 import { OrdersComponent } from './staff-side/orders/orders.component';
 import { MenuComponent } from './staff-side/menu/menu.component';
@@ -24,6 +26,8 @@ export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: IndexComponent },
   { path: 'about', component: AboutComponent },
+  { path: 'document', component: DocumentComponent },
+  { path: 'documenttable', component: DocumenttableComponent },
   {
     path: 'login',
     children: [

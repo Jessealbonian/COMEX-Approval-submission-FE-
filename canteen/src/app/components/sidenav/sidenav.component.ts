@@ -1,10 +1,12 @@
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, Input, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { PwaService } from '../../services/pwa.service';
 import Swal from 'sweetalert2';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+
+type SidenavVariant = 'staff' | 'document';
 
 @Component({
   selector: 'app-sidenav',
@@ -14,6 +16,16 @@ import { environment } from '../../../environments/environment';
   styleUrl: './sidenav.component.css',
 })
 export class SidenavComponent implements OnInit, OnDestroy {
+  private _variant: SidenavVariant = 'staff';
+
+  @Input()
+  set variant(value: string | SidenavVariant) {
+    this._variant = value === 'document' ? 'document' : 'staff';
+  }
+  get variant(): SidenavVariant {
+    return this._variant;
+  }
+
   isModalOpen = false;
   canInstall = false;
   isInstalled = false;
@@ -92,9 +104,16 @@ export class SidenavComponent implements OnInit, OnDestroy {
     }
   };
 
-  constructor(private pwaService: PwaService, private http: HttpClient) {}
+  constructor(
+    private pwaService: PwaService,
+    private http: HttpClient,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    if (this.variant !== 'staff') {
+      return;
+    }
     this.initializePwa();
     this.registerEventListeners();
     this.refreshAllIndicators();
@@ -102,10 +121,27 @@ export class SidenavComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.variant !== 'staff') {
+      return;
+    }
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
     this.removeEventListeners();
+  }
+
+  logout(): void {
+    // Simple front-end logout; keeps this component usable without backend.
+    try {
+      sessionStorage.removeItem('staff_token');
+      localStorage.removeItem('staffToken');
+      sessionStorage.removeItem('student_token');
+      localStorage.removeItem('studentToken');
+      sessionStorage.clear();
+      localStorage.removeItem('currentUser');
+    } finally {
+      void this.router.navigateByUrl('/home');
+    }
   }
 
   initializePwa(): void {
@@ -233,6 +269,9 @@ export class SidenavComponent implements OnInit, OnDestroy {
   }
 
   private startAutoRefresh(): void {
+    if (this.variant !== 'staff') {
+      return;
+    }
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
@@ -242,6 +281,9 @@ export class SidenavComponent implements OnInit, OnDestroy {
   }
 
   private refreshAllIndicators(): void {
+    if (this.variant !== 'staff') {
+      return;
+    }
     this.fetchOrdersData();
     this.fetchVolunteerApplications();
     this.fetchMenuLowStock();
@@ -387,8 +429,8 @@ export class SidenavComponent implements OnInit, OnDestroy {
       this.pendingVolunteerApplications + this.assignedVolunteerOrders;
   }
 
-  @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKey(event: KeyboardEvent) {
+  @HostListener('document:keydown.escape')
+  onEscapeKey() {
     if (this.isModalOpen) {
       this.closeModal();
     }

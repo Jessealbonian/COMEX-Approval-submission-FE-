@@ -22,6 +22,86 @@
   transition: all 0.3s ease;
 }
 
+/* Document variant (matches screenshot) */
+.doc-sidenav {
+  width: 170px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #e6e6e6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.doc-sidenav-top {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 0.25rem 1rem;
+  border-bottom: 2px solid #d9d9d9;
+}
+
+.doc-logo-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.doc-logo {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+}
+
+.doc-links {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.doc-nav-item {
+  width: 100%;
+  margin-top: 0.75rem;
+  text-align: center;
+  text-decoration: none;
+  color: #6b7280;
+  font-weight: 500;
+  padding: 0.65rem 0.5rem;
+  border-radius: 6px;
+}
+
+.doc-nav-item.active {
+  background: #ececec;
+  color: #374151;
+}
+
+.doc-sidenav-spacer {
+  flex: 1;
+}
+
+.doc-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  padding: 0.6rem 0.75rem;
+  color: #111827;
+  cursor: pointer;
+  border-top: 1px solid #e6e6e6;
+}
+
+.doc-logout .material-icons {
+  margin-right: 0;
+  font-size: 1.25rem;
+}
+
 .logo-section {
   display: flex;
   flex-direction: column;
