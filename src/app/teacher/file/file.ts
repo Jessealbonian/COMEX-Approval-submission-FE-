@@ -2,11 +2,61 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 type DocComment = {
   author: string;
   message: string;
+};
+
+type DocumentDetails = {
+  id: string;
+  name: string;
+  submittedBy: string;
+  submittedAt: Date;
+  comments: DocComment[];
+};
+
+const DOCUMENTS: Record<string, DocumentDetails> = {
+  'TRX-2026-001': {
+    id: 'TRX-2026-001',
+    name: 'Name.pdf',
+    submittedBy: 'Justin Marrocon Cortez',
+    submittedAt: new Date('2026-02-01T00:00:00'),
+    comments: [
+      { author: 'John Doe', message: 'Fix this' },
+      { author: 'John Doe', message: 'Fix this' },
+      { author: 'John Doe', message: 'Fix this' },
+      { author: 'Jane Smith', message: 'Please re-check the signatures on page 2.' },
+      { author: 'Mark Rivera', message: 'Use the latest template version for this submission.' },
+      { author: 'John Doe', message: 'Please update the file name format: LASTNAME_FIRSTNAME.pdf' },
+      { author: 'Admin', message: 'Ensure all required attachments are included before resubmitting.' },
+      { author: 'Jane Smith', message: 'Looks good after the corrections. Thanks!' },
+    ],
+  },
+  'TRX-2026-002': {
+    id: 'TRX-2026-002',
+    name: 'Enrollment-Form.pdf',
+    submittedBy: 'Jane Smith',
+    submittedAt: new Date('2026-01-22T00:00:00'),
+    comments: [
+      { author: 'Anna Cruz', message: 'Pending coordinator review.' },
+      { author: 'Records Office', message: 'Please include the back page in one file.' },
+      { author: 'Admin', message: 'Awaiting first review cycle.' },
+    ],
+  },
+  'TRX-2026-003': {
+    id: 'TRX-2026-003',
+    name: 'Request-Letter.pdf',
+    submittedBy: 'Mark Rivera',
+    submittedAt: new Date('2026-01-10T00:00:00'),
+    comments: [
+      { author: 'Maria Lopez', message: 'Coordinator check complete.' },
+      { author: 'Kevin Santos', message: 'Master check complete.' },
+      { author: 'Dr. Reyes', message: 'Approved for release.' },
+    ],
+  },
 };
 
 @Component({
@@ -29,8 +79,10 @@ export class File implements OnDestroy {
 
   private pdfObjectUrl: string | null = null;
   pdfUrl: SafeResourceUrl | null = null;
+  currentDocumentId = 'TRX-2026-001';
+  private routeSub?: Subscription;
 
-  private readonly allComments: DocComment[] = [
+  private allComments: DocComment[] = [
     { author: 'John Doe', message: 'Fix this' },
     { author: 'John Doe', message: 'Fix this' },
     { author: 'John Doe', message: 'Fix this' },
@@ -45,9 +97,14 @@ export class File implements OnDestroy {
 
   constructor(
     private readonly sanitizer: DomSanitizer,
+    private readonly route: ActivatedRoute,
     private readonly router: Router,
   ) {
     this.setPdfPreview(this.createSimplePdfSource('Sample Template'));
+    this.routeSub = this.route.queryParamMap.subscribe((params) => {
+      const id = params.get('id');
+      this.setCurrentDocument(id);
+    });
   }
 
   get visibleComments(): DocComment[] {
@@ -59,6 +116,7 @@ export class File implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
     this.revokePdfObjectUrl();
   }
 
@@ -217,5 +275,19 @@ export class File implements OnDestroy {
 
     const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${cursor}\n%%EOF\n`;
     return parts.join('') + xref + trailer;
+  }
+
+  private setCurrentDocument(id: string | null): void {
+    const fallbackId = 'TRX-2026-001';
+    const resolvedId = id && DOCUMENTS[id] ? id : fallbackId;
+    const document = DOCUMENTS[resolvedId];
+
+    this.currentDocumentId = document.id;
+    this.documentName = document.name;
+    this.submittedBy = document.submittedBy;
+    this.submittedAt = document.submittedAt;
+    this.allComments = document.comments;
+    this.visibleCommentsCount = Math.min(3, this.allComments.length);
+    this.setPdfPreview(this.createSimplePdfSource(document.name));
   }
 }
