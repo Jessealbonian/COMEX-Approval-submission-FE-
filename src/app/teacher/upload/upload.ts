@@ -1,73 +1,32 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Router } from '@angular/router';
-
-type DocComment = {
-  author: string;
-  message: string;
-};
 
 @Component({
-  selector: 'app-file',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './file.html',
-  styleUrl: './file.css',
+  selector: 'app-upload',
+  imports: [CommonModule],
+  templateUrl: './upload.html',
+  styleUrl: './upload.css',
 })
-export class File implements OnDestroy {
+export class Upload implements OnDestroy {
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
   isDragging = false;
-  uploadError = '';
   selectedFile: globalThis.File | null = null;
-
+  uploadError = '';
   documentName = 'Name.pdf';
   submittedBy = 'Justin Marrocon Cortez';
   submittedAt = new Date('2026-02-01T00:00:00');
-
-  private pdfObjectUrl: string | null = null;
   pdfUrl: SafeResourceUrl | null = null;
 
-  private readonly allComments: DocComment[] = [
-    { author: 'John Doe', message: 'Fix this' },
-    { author: 'John Doe', message: 'Fix this' },
-    { author: 'John Doe', message: 'Fix this' },
-    { author: 'Jane Smith', message: 'Please re-check the signatures on page 2.' },
-    { author: 'Mark Rivera', message: 'Use the latest template version for this submission.' },
-    { author: 'John Doe', message: 'Please update the file name format: LASTNAME_FIRSTNAME.pdf' },
-    { author: 'Admin', message: 'Ensure all required attachments are included before resubmitting.' },
-    { author: 'Jane Smith', message: 'Looks good after the corrections. Thanks!' },
-  ];
+  private pdfObjectUrl: string | null = null;
 
-  visibleCommentsCount = 3;
-
-  constructor(
-    private readonly sanitizer: DomSanitizer,
-    private readonly router: Router,
-  ) {
+  constructor(private readonly sanitizer: DomSanitizer) {
     this.setPdfPreview(this.createSimplePdfSource('Sample Template'));
-  }
-
-  get visibleComments(): DocComment[] {
-    return this.allComments.slice(0, this.visibleCommentsCount);
-  }
-
-  get canLoadMoreComments(): boolean {
-    return this.visibleCommentsCount < this.allComments.length;
   }
 
   ngOnDestroy(): void {
     this.revokePdfObjectUrl();
-  }
-
-  navigateHome(): void {
-    void this.router.navigateByUrl('/teacher/home');
-  }
-
-  backToDocuments(): void {
-    void this.router.navigateByUrl('/teacher/documents');
   }
 
   triggerFilePicker(): void {
@@ -127,14 +86,6 @@ export class File implements OnDestroy {
     this.cancelSelection();
   }
 
-  loadMoreComments(): void {
-    if (!this.canLoadMoreComments) {
-      return;
-    }
-
-    this.visibleCommentsCount = Math.min(this.visibleCommentsCount + 3, this.allComments.length);
-  }
-
   downloadSampleTemplate(): void {
     const blob = new Blob([this.createSimplePdfSource('Sample Template')], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
@@ -177,10 +128,7 @@ export class File implements OnDestroy {
   }
 
   private createSimplePdfSource(text: string): string {
-    const escapePdfString = (value: string) =>
-      value.replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)').replaceAll('\n', ' ');
-
-    const payload = escapePdfString(text);
+    const payload = text.replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)');
     const stream = `BT\n/F1 20 Tf\n72 720 Td\n(${payload}) Tj\nET`;
     const obj1 = `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
     const obj2 = `2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n`;
@@ -191,12 +139,11 @@ export class File implements OnDestroy {
       `endobj\n`;
     const obj4 = `4 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`;
     const obj5 = `5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`;
-
     const header = `%PDF-1.4\n%----\n`;
     const parts = [header, obj1, obj2, obj3, obj4, obj5];
-
     const offsets: number[] = [0];
     let cursor = 0;
+
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       if (i === 0) {
@@ -208,14 +155,11 @@ export class File implements OnDestroy {
       cursor += part.length;
     }
 
-    const pad10 = (n: number) => String(n).padStart(10, '0');
-    let xref = `xref\n0 6\n`;
-    xref += `0000000000 65535 f \n`;
+    let xref = `xref\n0 6\n0000000000 65535 f \n`;
     for (let i = 1; i <= 5; i++) {
-      xref += `${pad10(offsets[i] ?? 0)} 00000 n \n`;
+      xref += `${String(offsets[i] ?? 0).padStart(10, '0')} 00000 n \n`;
     }
 
-    const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${cursor}\n%%EOF\n`;
-    return parts.join('') + xref + trailer;
+    return `${parts.join('')}${xref}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${cursor}\n%%EOF\n`;
   }
 }

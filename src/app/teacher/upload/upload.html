@@ -1,0 +1,74 @@
+<div class="upload-page">
+  <section class="card upload-card" aria-label="Upload PDF">
+    <div class="card-title">Upload New Version</div>
+
+    <input
+      #fileInput
+      type="file"
+      accept="application/pdf,.pdf"
+      hidden
+      (change)="onFileInputChange($event)"
+    />
+
+    <div
+      class="dropzone"
+      role="button"
+      tabindex="0"
+      [class.dragging]="isDragging"
+      (click)="triggerFilePicker()"
+      (keydown.enter)="triggerFilePicker()"
+      (keydown.space)="triggerFilePicker()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+    >
+      <div class="dropzone-inner">
+        <div class="upload-icon">PDF</div>
+        <div class="dropzone-primary">Drop your PDF here or click to browse.</div>
+        <div class="dropzone-secondary">Only PDF files are supported.</div>
+      </div>
+    </div>
+
+    <div class="selected" *ngIf="selectedFile">
+      <div class="selected-name">{{ selectedFile.name }}</div>
+    </div>
+
+    <div class="error" *ngIf="uploadError">{{ uploadError }}</div>
+
+    <div class="sample-row">
+      <button type="button" class="sample-link" (click)="downloadSampleTemplate()">
+        Download sample template
+      </button>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" (click)="cancelSelection()">Cancel</button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="!selectedFile"
+        (click)="continueSelection()"
+      >
+        Continue
+      </button>
+    </div>
+  </section>
+
+  <section class="preview-panel" aria-label="Document preview">
+    <div class="preview-header">
+      <div class="preview-title">{{ documentName }}</div>
+      <div class="preview-subtitle">
+        Submitted by: <strong>{{ submittedBy }}</strong> |
+        Submitted on: {{ submittedAt | date: 'longDate' }}
+      </div>
+    </div>
+
+    <div class="preview-frame" *ngIf="pdfUrl; else noPreview">
+      <iframe class="preview-iframe" [src]="pdfUrl" title="PDF preview"></iframe>
+    </div>
+
+    <ng-template #noPreview>
+      <div class="preview-empty">No PDF selected.</div>
+    </ng-template>
+  </section>
+</div>
