@@ -29,6 +29,10 @@ import { FileComment, FileDoc } from '../../models/file.models';
  *     logged-in user's role AND the file's current_level. The backend
  *     re-validates these conditions, so even a tampered button click
  *     cannot trigger an out-of-role action.
+ *   - The PDF iframe is loaded ONCE per fileId. Posting a comment,
+ *     revision, resolving, or forwarding does NOT re-fetch the PDF
+ *     blob, so the user keeps their scroll position and zoom while
+ *     interacting with the timeline.
  */
 @Component({
   selector: 'app-file-review',
@@ -48,20 +52,26 @@ export class FileReview implements OnChanges, OnDestroy {
   readonly errorMessage = signal('');
   readonly successMessage = signal('');
   readonly acting = signal(false);
+  readonly resolvingId = signal<number | null>(null);
 
   file: FileDoc | null = null;
   comments: FileComment[] = [];
 
   pdfUrl: SafeResourceUrl | null = null;
   private pdfObjectUrl: string | null = null;
+  /** id of the file whose blob currently sits in pdfObjectUrl, used to
+   *  avoid redundant re-downloads when refreshing metadata only. */
+  private pdfFileId: number | null = null;
 
   commentBody = '';
 
   ngOnChanges(changes: SimpleChanges): void {
     if ('fileId' in changes) {
       const next = changes['fileId'].currentValue as number | null;
+      const prev = changes['fileId'].previousValue as number | null | undefined;
       if (next != null && Number.isFinite(next) && next > 0) {
-        this.load(next);
+        const fileChanged = prev !== next;
+        this.load(next, { refreshPdf: fileChanged });
       } else {
         this.reset();
         this.errorMessage.set('No document selected.');
@@ -75,17 +85,23 @@ export class FileReview implements OnChanges, OnDestroy {
 
   /* -------- loading -------- */
 
-  load(id: number): void {
+  /**
+   * Load file metadata and comments. By default the PDF blob is only
+   * fetched the first time we see this fileId; subsequent calls keep
+   * the existing iframe alive (so the preview never flickers when
+   * the user posts a comment / revision / resolves an item).
+   */
+  private load(id: number, opts: { refreshPdf?: boolean } = {}): void {
+    const shouldFetchPdf = opts.refreshPdf || this.pdfFileId !== id;
     this.loading.set(true);
     this.errorMessage.set('');
-    this.successMessage.set('');
 
     this.fileService.get(id).subscribe({
       next: (res) => {
         this.file = res.file;
         this.comments = res.comments;
         this.loading.set(false);
-        this.refreshPdf(id);
+        if (shouldFetchPdf) this.refreshPdf(id);
       },
       error: (err) => {
         this.loading.set(false);
@@ -101,11 +117,12 @@ export class FileReview implements OnChanges, OnDestroy {
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         this.pdfObjectUrl = url;
+        this.pdfFileId = id;
         this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
       },
       error: () => {
-        // Non-fatal: metadata still shows, just no PDF preview.
         this.pdfUrl = null;
+        this.pdfFileId = null;
       },
     });
   }
@@ -136,12 +153,18 @@ export class FileReview implements OnChanges, OnDestroy {
     this.runAction(
       () =>
         this.fileService.comment(this.file!.id, body, 'revision').toPromise(),
-      'Revision request posted.'
+      'Revision request posted. Forwarding is now blocked until it is resolved.'
     );
   }
 
   forward(): void {
     if (!this.file || this.acting()) return;
+    if (this.hasUnresolvedRevisions) {
+      this.errorMessage.set(
+        'Cannot forward: there are unresolved revisions at your level. Resolve them first.'
+      );
+      return;
+    }
     const body = this.commentBody.trim() || undefined;
     this.runAction(
       () => this.fileService.forward(this.file!.id, body).toPromise(),
@@ -156,6 +179,27 @@ export class FileReview implements OnChanges, OnDestroy {
       () => this.fileService.finalize(this.file!.id, body).toPromise(),
       'Document finalized.'
     );
+  }
+
+  resolveComment(comment: FileComment): void {
+    if (!this.file) return;
+    if (comment.action !== 'revision' || comment.resolved_at) return;
+    if (this.resolvingId() !== null) return;
+
+    this.resolvingId.set(comment.id);
+    this.errorMessage.set('');
+    this.fileService.resolveComment(this.file.id, comment.id).subscribe({
+      next: () => {
+        this.resolvingId.set(null);
+        this.successMessage.set('Revision marked as resolved.');
+        // Metadata-only refresh: keep the PDF iframe untouched.
+        if (this.file) this.load(this.file.id, { refreshPdf: false });
+      },
+      error: (err) => {
+        this.resolvingId.set(null);
+        this.errorMessage.set(this.describe(err, 'Failed to resolve revision.'));
+      },
+    });
   }
 
   download(): void {
@@ -194,6 +238,38 @@ export class FileReview implements OnChanges, OnDestroy {
     return this.currentRole === 4 && this.isMyTurn;
   }
 
+  /**
+   * Revisions raised by the *current reviewer's level* that are still
+   * pending. While > 0 the Forward button is disabled (and the backend
+   * also rejects forward attempts with 409).
+   */
+  get unresolvedAtMyLevel(): FileComment[] {
+    const role = this.currentRole;
+    if (!role) return [];
+    return this.comments.filter(
+      (c) =>
+        c.action === 'revision' &&
+        Number(c.role_level) === Number(role) &&
+        !c.resolved_at
+    );
+  }
+
+  get hasUnresolvedRevisions(): boolean {
+    return this.unresolvedAtMyLevel.length > 0;
+  }
+
+  /**
+   * The Resolve button is shown next to a revision if the logged-in
+   * user is the reviewer who currently holds the file (Coordinator/
+   * Master/Admin) AND the revision is not yet resolved.
+   */
+  canResolve(comment: FileComment): boolean {
+    if (comment.action !== 'revision' || comment.resolved_at) return false;
+    const role = this.currentRole;
+    if (!role || role === 1) return false;
+    return this.isMyTurn;
+  }
+
   statusLabel(status: string): string {
     switch (status) {
       case 'uploaded': return 'Awaiting Coordinator';
@@ -219,7 +295,9 @@ export class FileReview implements OnChanges, OnDestroy {
       await op();
       this.successMessage.set(successMessage);
       this.commentBody = '';
-      this.load(this.file.id);
+      // Metadata-only refresh: do NOT re-fetch the PDF blob, so the
+      // iframe and the user's scroll/zoom remain untouched.
+      this.load(this.file.id, { refreshPdf: false });
     } catch (err) {
       this.errorMessage.set(this.describe(err, 'Action failed.'));
     } finally {
@@ -244,6 +322,7 @@ export class FileReview implements OnChanges, OnDestroy {
       this.pdfObjectUrl = null;
     }
     this.pdfUrl = null;
+    this.pdfFileId = null;
   }
 
   private reset(): void {
@@ -260,6 +339,7 @@ export class FileReview implements OnChanges, OnDestroy {
       if (err.status === 401) return 'Your session expired. Please log in again.';
       if (err.status === 403) return 'You are not allowed to perform this action.';
       if (err.status === 404) return 'Document not found.';
+      if (err.status === 409) return 'Action conflicts with current document state.';
       return `${fallback} (HTTP ${err.status}).`;
     }
     return fallback;

@@ -173,6 +173,17 @@ async function listFiles(req, res, next) {
       where.push('f.uploaded_by = ?');
       params.push(req.user.id);
     }
+    // ?history=1 returns files that have already moved past the
+    // requesting reviewer's stage, OR are finalized. Used by the
+    // Coordinator/Master "History" tab. Teachers and Admin get the
+    // unfiltered list because they don't have a "stage" of their own.
+    if (req.query.history === '1') {
+      const lvl = Number(req.user.role_level);
+      if (lvl === ROLES.COORDINATOR || lvl === ROLES.MASTER) {
+        where.push('(f.current_level > ? OR f.status = ?)');
+        params.push(lvl, STATUS.FINALIZED);
+      }
+    }
 
     const sql = `${FILE_SELECT}
       WHERE ${where.join(' AND ')}
@@ -220,11 +231,14 @@ async function getFile(req, res, next) {
 
     const [comments] = await pool.query(
       `SELECT c.id, c.file_id, c.user_id, c.role_level, c.action, c.body,
-              c.created_at,
+              c.resolved_at, c.resolved_by, c.created_at,
               u.name  AS user_name,
-              u.email AS user_email
+              u.email AS user_email,
+              ru.id   AS resolver_id,
+              ru.name AS resolver_name
          FROM comments c
          JOIN users u ON u.id = c.user_id
+         LEFT JOIN users ru ON ru.id = c.resolved_by
         WHERE c.file_id = ?
         ORDER BY c.created_at ASC, c.id ASC`,
       [id]
@@ -240,6 +254,10 @@ async function getFile(req, res, next) {
         role_level: c.role_level,
         role: roleName(c.role_level),
         user: { id: c.user_id, name: c.user_name, email: c.user_email },
+        resolved_at: c.resolved_at,
+        resolved_by: c.resolver_id
+          ? { id: c.resolver_id, name: c.resolver_name }
+          : null,
         created_at: c.created_at,
       })),
     });

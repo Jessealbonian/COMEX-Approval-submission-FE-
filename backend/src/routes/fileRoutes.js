@@ -13,6 +13,7 @@ const {
 } = require('../controllers/fileController');
 const {
   addComment,
+  resolveComment,
   forwardFile,
   finalizeFile,
 } = require('../controllers/commentController');
@@ -43,6 +44,14 @@ router.post(
   '/:id/comments',
   requireRole(ROLES.COORDINATOR, ROLES.MASTER, ROLES.ADMIN),
   asyncHandler(addComment)
+);
+
+// Mark a revision as resolved. Allowed for any reviewer who currently
+// owns the file (Coordinator/Master/Admin); the controller enforces it.
+router.post(
+  '/:id/comments/:commentId/resolve',
+  requireRole(ROLES.COORDINATOR, ROLES.MASTER, ROLES.ADMIN),
+  asyncHandler(resolveComment)
 );
 
 // Forwarding: Coordinator and Master only.

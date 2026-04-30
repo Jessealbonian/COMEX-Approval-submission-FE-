@@ -32,6 +32,12 @@
   color: #166534;
 }
 
+.banner.warning {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+}
+
 .muted {
   color: var(--muted);
   font-size: 0.9rem;
@@ -293,4 +299,52 @@
   color: var(--muted);
   font-size: 0.7rem;
   margin-top: 0.25rem;
+}
+
+.comment-card.resolved {
+  background: #f8fafc;
+}
+
+.comment-card.resolved .comment-text {
+  color: #4b5563;
+}
+
+.resolve-pill {
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.45rem;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.resolve-pill.open {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.resolve-pill.done {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.comment-resolution {
+  color: #166534;
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+}
+
+.comment-action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.btn-resolve {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #166534;
+  font-weight: 600;
 }

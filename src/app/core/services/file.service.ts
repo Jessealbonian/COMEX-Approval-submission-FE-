@@ -27,11 +27,13 @@ export class FileService {
     status?: FileStatus;
     current_level?: 1 | 2 | 3 | 4;
     mine?: boolean;
+    history?: boolean;
   } = {}): Observable<{ files: FileDoc[] }> {
     let params = new HttpParams();
     if (filters.status) params = params.set('status', filters.status);
     if (filters.current_level) params = params.set('current_level', String(filters.current_level));
     if (filters.mine) params = params.set('mine', '1');
+    if (filters.history) params = params.set('history', '1');
     return this.http.get<{ files: FileDoc[] }>(this.base, { params });
   }
 
@@ -64,6 +66,25 @@ export class FileService {
       `${this.base}/${fileId}/comments`,
       { body, action }
     );
+  }
+
+  /**
+   * Mark a revision comment as resolved. Only allowed for the reviewer
+   * who currently holds the file (Coordinator/Master) or the Admin.
+   * Backend rejects with 400/403/409 if the comment is not a pending
+   * revision.
+   */
+  resolveComment(
+    fileId: number,
+    commentId: number
+  ): Observable<{
+    ok: boolean;
+    comment: { id: number; resolved_at: string; resolved_by: { id: number; name: string } };
+  }> {
+    return this.http.post<{
+      ok: boolean;
+      comment: { id: number; resolved_at: string; resolved_by: { id: number; name: string } };
+    }>(`${this.base}/${fileId}/comments/${commentId}/resolve`, {});
   }
 
   forward(fileId: number, body?: string): Observable<{ ok: boolean; file: Partial<FileDoc> }> {

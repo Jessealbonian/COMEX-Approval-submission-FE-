@@ -19,12 +19,25 @@ const ADDITIVE_MIGRATIONS = [
   `ALTER TABLE \`users\`
      ADD COLUMN \`token_version\` INT UNSIGNED NOT NULL DEFAULT 0
      AFTER \`is_active\``,
+  // Comment resolution tracking (Resolve button + forward gating).
+  `ALTER TABLE \`comments\`
+     ADD COLUMN \`resolved_at\` DATETIME NULL AFTER \`body\``,
+  `ALTER TABLE \`comments\`
+     ADD COLUMN \`resolved_by\` INT UNSIGNED NULL AFTER \`resolved_at\``,
+  `ALTER TABLE \`comments\`
+     ADD KEY \`ix_comments_resolved_by\` (\`resolved_by\`)`,
+  `ALTER TABLE \`comments\`
+     ADD CONSTRAINT \`fk_comments_resolved_by\`
+       FOREIGN KEY (\`resolved_by\`) REFERENCES \`users\`(\`id\`)
+       ON UPDATE CASCADE ON DELETE SET NULL`,
 ];
 
 const IGNORABLE_ERROR_CODES = new Set([
   'ER_DUP_FIELDNAME', // column already exists
   'ER_DUP_KEYNAME',   // index already exists
   'ER_TABLE_EXISTS_ERROR',
+  'ER_FK_DUP_NAME',   // foreign key already exists
+  'ER_DUP_KEY',
 ]);
 
 async function main() {

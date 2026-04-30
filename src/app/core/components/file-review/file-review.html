@@ -49,6 +49,15 @@
         </button>
       </div>
 
+      <div
+        class="banner warning"
+        *ngIf="canForward && hasUnresolvedRevisions"
+      >
+        Forwarding is blocked: {{ unresolvedAtMyLevel.length }} unresolved
+        revision<span *ngIf="unresolvedAtMyLevel.length !== 1">s</span> at your
+        level. Mark them resolved before forwarding.
+      </div>
+
       <ng-container *ngIf="canComment || canForward || canFinalize">
         <label class="field">
           <span>Add comment / revision note</span>
@@ -83,7 +92,8 @@
             *ngIf="canForward"
             type="button"
             class="btn btn-primary"
-            [disabled]="acting()"
+            [disabled]="acting() || hasUnresolvedRevisions"
+            [title]="hasUnresolvedRevisions ? 'Resolve all open revisions first' : ''"
             (click)="forward()"
           >
             Forward to next level
@@ -123,16 +133,48 @@
 
     <aside class="comments-panel" aria-label="Comments timeline">
       <div class="card-title">Timeline</div>
-      <div class="comment-card" *ngFor="let c of comments">
+      <div
+        class="comment-card"
+        *ngFor="let c of comments"
+        [class.resolved]="c.action === 'revision' && c.resolved_at"
+      >
         <div class="comment-meta">
           <span class="comment-author">{{ c.user.name }}</span>
           <span class="comment-role">{{ c.role }}</span>
         </div>
-        <div class="comment-action" [class.revision]="c.action === 'revision'" [class.system]="c.action === 'forward' || c.action === 'finalize'">
+        <div
+          class="comment-action"
+          [class.revision]="c.action === 'revision'"
+          [class.system]="c.action === 'forward' || c.action === 'finalize'"
+        >
           {{ c.action }}
+          <span
+            class="resolve-pill"
+            *ngIf="c.action === 'revision'"
+            [class.open]="!c.resolved_at"
+            [class.done]="c.resolved_at"
+          >
+            {{ c.resolved_at ? 'resolved' : 'open' }}
+          </span>
         </div>
         <div class="comment-text">{{ c.body }}</div>
         <div class="comment-time">{{ c.created_at | date: 'short' }}</div>
+
+        <div class="comment-resolution" *ngIf="c.resolved_at">
+          Resolved by <strong>{{ c.resolved_by?.name || 'a reviewer' }}</strong>
+          on {{ c.resolved_at | date: 'short' }}.
+        </div>
+
+        <div class="comment-action-row" *ngIf="canResolve(c)">
+          <button
+            type="button"
+            class="btn btn-resolve"
+            [disabled]="resolvingId() === c.id"
+            (click)="resolveComment(c)"
+          >
+            {{ resolvingId() === c.id ? 'Resolving...' : 'Resolve' }}
+          </button>
+        </div>
       </div>
       <p class="muted" *ngIf="comments.length === 0">No comments yet.</p>
     </aside>

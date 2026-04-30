@@ -32,6 +32,13 @@ export interface FileComment {
   role_level: RoleLevel;
   role: RoleName;
   user: { id: number; name: string; email: string };
+  /**
+   * Only meaningful for `action === 'revision'`. When non-null the
+   * revision has been marked resolved; otherwise it's still pending
+   * and will block forwarding to the next workflow level.
+   */
+  resolved_at: string | null;
+  resolved_by: { id: number; name: string } | null;
   created_at: string;
 }
 

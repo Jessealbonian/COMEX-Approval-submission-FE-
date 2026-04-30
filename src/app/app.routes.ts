@@ -8,9 +8,11 @@ import { Login as SharedLogin } from './components/login/login';
 import { Dashboard as CoardDashboard } from './coard/dashboard/dashboard';
 import { Document as CoardDocument } from './coard/document/document';
 import { Files as CoardFile } from './coard/file/file';
+import { History as CoardHistory } from './coard/history/history';
 import { Dashboard as MasterDashboard } from './Master/dashboard/dashboard';
 import { Document as MasterDocument } from './Master/document/document';
 import { Files as MasterFile } from './Master/file/file';
+import { History as MasterHistory } from './Master/history/history';
 import { Documents } from './teacher/documents/documents';
 import { File } from './teacher/file/file';
 import { Home } from './teacher/home/home';
@@ -59,6 +61,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', component: CoardDashboard },
       { path: 'document', component: CoardDocument },
+      { path: 'history', component: CoardHistory },
       { path: 'file', component: CoardFile },
     ],
   },
@@ -71,6 +74,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', component: MasterDashboard },
       { path: 'document', component: MasterDocument },
+      { path: 'history', component: MasterHistory },
       { path: 'file', component: MasterFile },
     ],
   },

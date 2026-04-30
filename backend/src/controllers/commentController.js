@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 
 /**
  * Returns true if the given user is currently allowed to *act* on the file
- * (i.e. add comments / revisions / forward / finalize).
+ * (i.e. add comments / revisions / forward / finalize / resolve).
  *
  * Acting permission is based on the file's current_level matching the
  * reviewer's role_level. Teachers cannot act on their own files (they
@@ -36,6 +36,23 @@ async function loadFileForAction(user, fileId) {
     throw new HttpError(403, 'You are not allowed to act on this file right now');
   }
   return file;
+}
+
+/**
+ * Counts revisions at a given workflow level that have not been resolved.
+ * Used to gate Coordinator/Master "forward" actions.
+ */
+async function unresolvedRevisionCount(conn, fileId, level) {
+  const [rows] = await conn.query(
+    `SELECT COUNT(*) AS n
+       FROM comments
+      WHERE file_id = ?
+        AND role_level = ?
+        AND action = 'revision'
+        AND resolved_at IS NULL`,
+    [fileId, level]
+  );
+  return Number(rows[0].n) || 0;
 }
 
 /**
@@ -72,7 +89,68 @@ async function addComment(req, res, next) {
         role: roleName(req.user.role_level),
         action,
         body,
+        resolved_at: null,
+        resolved_by: null,
         created_at: new Date(),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/files/:id/comments/:commentId/resolve
+ *
+ * Marks a `revision` comment as resolved. Only the reviewer who is
+ * currently allowed to act on the file (or the Admin) can resolve.
+ * Comments other than 'revision' cannot be resolved (it would be
+ * meaningless).
+ */
+async function resolveComment(req, res, next) {
+  try {
+    const fileId = requireId(req.params.id);
+    const commentId = requireId(req.params.commentId);
+
+    const file = await loadFileForAction(req.user, fileId);
+
+    const [rows] = await pool.query(
+      `SELECT id, file_id, action, role_level, resolved_at
+         FROM comments
+        WHERE id = ? AND file_id = ?
+        LIMIT 1`,
+      [commentId, file.id]
+    );
+    const comment = rows[0];
+    if (!comment) throw new HttpError(404, 'Comment not found');
+    if (comment.action !== 'revision') {
+      throw new HttpError(400, 'Only revisions can be resolved');
+    }
+    if (comment.resolved_at) {
+      throw new HttpError(409, 'Comment is already resolved');
+    }
+
+    await pool.query(
+      `UPDATE comments
+          SET resolved_at = CURRENT_TIMESTAMP,
+              resolved_by = ?
+        WHERE id = ?`,
+      [req.user.id, comment.id]
+    );
+
+    logger.info('comments.resolve', {
+      reqId: req.id,
+      actor: req.user.id,
+      fileId: file.id,
+      commentId: comment.id,
+    });
+
+    res.json({
+      ok: true,
+      comment: {
+        id: comment.id,
+        resolved_at: new Date(),
+        resolved_by: { id: req.user.id, name: req.user.name },
       },
     });
   } catch (err) {
@@ -86,7 +164,8 @@ async function addComment(req, res, next) {
  *
  * Coordinator -> Master -> Admin chain. Wrapped in a transaction with
  * SELECT ... FOR UPDATE so concurrent forwards cannot double-advance
- * the same file.
+ * the same file. Forwarding is BLOCKED while there are unresolved
+ * revisions at the reviewer's level.
  */
 async function forwardFile(req, res, next) {
   try {
@@ -112,6 +191,18 @@ async function forwardFile(req, res, next) {
       }
       if (Number(file.current_level) !== Number(req.user.role_level)) {
         throw new HttpError(400, 'File is not at your level');
+      }
+
+      const pending = await unresolvedRevisionCount(
+        conn,
+        file.id,
+        req.user.role_level
+      );
+      if (pending > 0) {
+        throw new HttpError(
+          409,
+          'Cannot forward: there are unresolved revisions at your level. Mark them resolved first.'
+        );
       }
 
       const next = nextWorkflowState(req.user.role_level);
@@ -212,4 +303,4 @@ async function finalizeFile(req, res, next) {
   }
 }
 
-module.exports = { addComment, forwardFile, finalizeFile };
+module.exports = { addComment, resolveComment, forwardFile, finalizeFile };

@@ -92,16 +92,26 @@ CREATE TABLE IF NOT EXISTS `comments` (
   `action`       ENUM('comment','revision','forward','finalize')
                   NOT NULL DEFAULT 'comment',
   `body`         TEXT NOT NULL,
+  -- For action='revision' only: when set, the revision request has been
+  -- marked as resolved by `resolved_by` at `resolved_at`. Forwarding to
+  -- the next workflow level is blocked while any revision at the
+  -- current level remains unresolved.
+  `resolved_at`  DATETIME NULL,
+  `resolved_by`  INT UNSIGNED NULL,
   `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `ix_comments_file_id` (`file_id`),
   KEY `ix_comments_user_id` (`user_id`),
+  KEY `ix_comments_resolved_by` (`resolved_by`),
   CONSTRAINT `fk_comments_file_id`
     FOREIGN KEY (`file_id`) REFERENCES `files`(`id`)
     ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT `fk_comments_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
     ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT `fk_comments_resolved_by`
+    FOREIGN KEY (`resolved_by`) REFERENCES `users`(`id`)
+    ON UPDATE CASCADE ON DELETE SET NULL,
   CONSTRAINT `chk_comments_role_level`
     CHECK (`role_level` BETWEEN 1 AND 4)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

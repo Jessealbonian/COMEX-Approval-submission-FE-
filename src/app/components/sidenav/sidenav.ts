@@ -36,11 +36,13 @@ const NAV_LINKS: Record<AppSection, NavItem[]> = {
   coard: [
     { label: 'Dashboard', icon: 'dashboard', route: '/coard/dashboard' },
     { label: 'Document', icon: 'description', route: '/coard/document' },
+    { label: 'History', icon: 'history', route: '/coard/history' },
     { label: 'File', icon: 'insert_drive_file', route: '/coard/file' },
   ],
   master: [
     { label: 'Dashboard', icon: 'dashboard', route: '/master/dashboard' },
     { label: 'Document', icon: 'description', route: '/master/document' },
+    { label: 'History', icon: 'history', route: '/master/history' },
     { label: 'File', icon: 'insert_drive_file', route: '/master/file' },
   ],
 };

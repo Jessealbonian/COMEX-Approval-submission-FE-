@@ -44,7 +44,7 @@
               </td>
             </tr>
             <tr *ngIf="rows.length === 0">
-              <td colspan="6" class="muted-row">No documents to show.</td>
+              <td colspan="6" class="muted-row">{{ emptyMessage }}</td>
             </tr>
           </tbody>
         </table>

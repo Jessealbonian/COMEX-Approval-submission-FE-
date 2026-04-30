@@ -35,6 +35,16 @@ export class DocumentList implements OnInit {
    */
   @Input() mineOnly = false;
 
+  /**
+   * Optional `history=1` filter. Used by the Coordinator/Master
+   * "History" tab to show only files that have already moved past
+   * their stage (or are finalized). Backend enforces visibility.
+   */
+  @Input() historyOnly = false;
+
+  /** Heading shown when there are no rows to display. */
+  @Input() emptyMessage = 'No documents to show.';
+
   private readonly router = inject(Router);
   private readonly fileService = inject(FileService);
 
@@ -50,16 +60,18 @@ export class DocumentList implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.fileService.list({ mine: this.mineOnly }).subscribe({
-      next: (res) => {
-        this.rows = res.files.map((f) => this.toRow(f));
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.errorMessage.set(this.describe(err));
-      },
-    });
+    this.fileService
+      .list({ mine: this.mineOnly, history: this.historyOnly })
+      .subscribe({
+        next: (res) => {
+          this.rows = res.files.map((f) => this.toRow(f));
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.errorMessage.set(this.describe(err));
+        },
+      });
   }
 
   open(row: ListRow): void {
