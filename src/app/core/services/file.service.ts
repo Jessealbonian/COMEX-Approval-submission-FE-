@@ -23,6 +23,18 @@ export class FileService {
     return this.http.post<{ file: FileDoc }>(this.base, fd);
   }
 
+  /**
+   * Replace the PDF on an existing transaction (Teacher only). The
+   * row id stays the same, so the document's "transaction number"
+   * does not change. Backend resets the workflow back to Coordinator
+   * and auto-resolves any open revision requests.
+   */
+  reupload(fileId: number, file: File): Observable<{ file: FileDoc }> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return this.http.post<{ file: FileDoc }>(`${this.base}/${fileId}/reupload`, fd);
+  }
+
   list(filters: {
     status?: FileStatus;
     current_level?: 1 | 2 | 3 | 4;

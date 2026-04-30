@@ -53,6 +53,9 @@ export class FileReview implements OnChanges, OnDestroy {
   readonly successMessage = signal('');
   readonly acting = signal(false);
   readonly resolvingId = signal<number | null>(null);
+  readonly pdfLoading = signal(false);
+  readonly pdfError = signal('');
+  readonly fullscreen = signal(false);
 
   file: FileDoc | null = null;
   comments: FileComment[] = [];
@@ -113,18 +116,37 @@ export class FileReview implements OnChanges, OnDestroy {
 
   private refreshPdf(id: number): void {
     this.revokePdf();
+    this.pdfLoading.set(true);
+    this.pdfError.set('');
     this.fileService.download(id).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
+        // Force the correct MIME so Chrome's built-in viewer kicks in
+        // even if the server response was missing or wrong.
+        const pdfBlob =
+          blob.type === 'application/pdf'
+            ? blob
+            : new Blob([blob], { type: 'application/pdf' });
+        const url = URL.createObjectURL(pdfBlob);
         this.pdfObjectUrl = url;
         this.pdfFileId = id;
         this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+        this.pdfLoading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.pdfUrl = null;
         this.pdfFileId = null;
+        this.pdfLoading.set(false);
+        this.pdfError.set(this.describe(err, 'Could not load the PDF.'));
       },
     });
+  }
+
+  retryPdf(): void {
+    if (this.file) this.refreshPdf(this.file.id);
+  }
+
+  toggleFullscreen(): void {
+    this.fullscreen.update((v) => !v);
   }
 
   /* -------- actions (the backend gates these on every call) -------- */
@@ -159,9 +181,9 @@ export class FileReview implements OnChanges, OnDestroy {
 
   forward(): void {
     if (!this.file || this.acting()) return;
-    if (this.hasUnresolvedRevisions) {
+    if (this.hasAnyUnresolvedRevisions) {
       this.errorMessage.set(
-        'Cannot forward: there are unresolved revisions at your level. Resolve them first.'
+        'Cannot forward: there are unresolved revisions on this document. Resolve them first.'
       );
       return;
     }
@@ -174,11 +196,45 @@ export class FileReview implements OnChanges, OnDestroy {
 
   finalize(): void {
     if (!this.file || this.acting()) return;
+    if (this.hasAnyUnresolvedRevisions) {
+      this.errorMessage.set(
+        'Cannot finalize: there are unresolved revisions on this document. Resolve them first.'
+      );
+      return;
+    }
     const body = this.commentBody.trim() || undefined;
     this.runAction(
       () => this.fileService.finalize(this.file!.id, body).toPromise(),
       'Document finalized.'
     );
+  }
+
+  /**
+   * Teacher-side handler for the file picker. Uploads the chosen PDF
+   * to /reupload, which keeps the same transaction id but rolls the
+   * workflow back to Coordinator. After the upload finishes we fully
+   * reload metadata + comments AND fetch the new PDF blob so the
+   * preview reflects the replacement.
+   */
+  onReuploadFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (!file || !this.file || this.acting()) {
+      if (input) input.value = '';
+      return;
+    }
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      this.errorMessage.set('Please choose a PDF file.');
+      input.value = '';
+      return;
+    }
+    const fileId = this.file.id;
+    this.runAction(
+      () => this.fileService.reupload(fileId, file).toPromise(),
+      'Document re-uploaded. It is now back with the Coordinator.',
+      { refreshPdf: true }
+    );
+    input.value = '';
   }
 
   resolveComment(comment: FileComment): void {
@@ -239,23 +295,43 @@ export class FileReview implements OnChanges, OnDestroy {
   }
 
   /**
+   * Teacher can re-upload a replacement PDF on the same transaction
+   * whenever a reviewer has flagged the document for revision and
+   * those revisions are still open. Once Forward/Finalize go through,
+   * there are no open revisions left, so the button hides itself.
+   */
+  get canReupload(): boolean {
+    return this.currentRole === 1 && this.hasAnyUnresolvedRevisions;
+  }
+
+  /** Every revision on this document that is still unresolved. Any
+   *  open revision blocks forwarding (Coordinator/Master) AND
+   *  finalizing (Principal), regardless of which reviewer raised it. */
+  get unresolvedRevisions(): FileComment[] {
+    return this.comments.filter(
+      (c) => c.action === 'revision' && !c.resolved_at
+    );
+  }
+
+  get hasAnyUnresolvedRevisions(): boolean {
+    return this.unresolvedRevisions.length > 0;
+  }
+
+  /**
    * Revisions raised by the *current reviewer's level* that are still
-   * pending. While > 0 the Forward button is disabled (and the backend
-   * also rejects forward attempts with 409).
+   * pending. Used only for the Resolve UI; the gating logic uses
+   * hasAnyUnresolvedRevisions instead.
    */
   get unresolvedAtMyLevel(): FileComment[] {
     const role = this.currentRole;
     if (!role) return [];
-    return this.comments.filter(
-      (c) =>
-        c.action === 'revision' &&
-        Number(c.role_level) === Number(role) &&
-        !c.resolved_at
+    return this.unresolvedRevisions.filter(
+      (c) => Number(c.role_level) === Number(role)
     );
   }
 
   get hasUnresolvedRevisions(): boolean {
-    return this.unresolvedAtMyLevel.length > 0;
+    return this.hasAnyUnresolvedRevisions;
   }
 
   /**
@@ -285,7 +361,8 @@ export class FileReview implements OnChanges, OnDestroy {
 
   private async runAction(
     op: () => Promise<unknown> | undefined,
-    successMessage: string
+    successMessage: string,
+    opts: { refreshPdf?: boolean } = {}
   ): Promise<void> {
     if (!this.file) return;
     this.acting.set(true);
@@ -295,9 +372,10 @@ export class FileReview implements OnChanges, OnDestroy {
       await op();
       this.successMessage.set(successMessage);
       this.commentBody = '';
-      // Metadata-only refresh: do NOT re-fetch the PDF blob, so the
-      // iframe and the user's scroll/zoom remain untouched.
-      this.load(this.file.id, { refreshPdf: false });
+      // By default this is a metadata-only refresh so the iframe
+      // and the user's scroll/zoom remain untouched. Re-upload sets
+      // refreshPdf:true so the preview shows the replacement file.
+      this.load(this.file.id, { refreshPdf: !!opts.refreshPdf });
     } catch (err) {
       this.errorMessage.set(this.describe(err, 'Action failed.'));
     } finally {

@@ -298,11 +298,158 @@ async function downloadFile(req, res, next) {
   }
 }
 
+/**
+ * POST /api/files/:id/reupload (Teacher only) - multipart/form-data
+ * field: file (PDF)
+ *
+ * Replaces the stored PDF for a file the teacher already owns, while
+ * keeping the same row id (so the "transaction" stays the same). The
+ * workflow is reset back to the Coordinator stage so reviewers see
+ * the new version, and any open revision requests are auto-resolved
+ * (re-uploading IS the response to the revision). The previous PDF
+ * is deleted from disk.
+ */
+async function reuploadFile(req, res, next) {
+  try {
+    if (!req.file) throw new HttpError(400, 'PDF file is required');
+
+    const id = requireId(req.params.id);
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [rows] = await conn.query(
+        `SELECT id, uploaded_by, stored_name, status
+           FROM files WHERE id = ? FOR UPDATE`,
+        [id]
+      );
+      const file = rows[0];
+      if (!file) {
+        fs.unlink(req.file.path, () => {});
+        throw new HttpError(404, 'File not found');
+      }
+      // Only the original uploader (Teacher) may re-upload, and only
+      // when there is at least one open revision request - re-upload
+      // is the teacher's response to a "Mark for revision" action.
+      if (Number(req.user.role_level) !== ROLES.TEACHER ||
+          file.uploaded_by !== req.user.id) {
+        fs.unlink(req.file.path, () => {});
+        throw new HttpError(403, 'You are not allowed to re-upload this file');
+      }
+      if (file.status === STATUS.FINALIZED) {
+        fs.unlink(req.file.path, () => {});
+        throw new HttpError(409, 'This document is already finalized');
+      }
+
+      const [openRevs] = await conn.query(
+        `SELECT COUNT(*) AS n
+           FROM comments
+          WHERE file_id = ?
+            AND action = 'revision'
+            AND resolved_at IS NULL`,
+        [file.id]
+      );
+      if (Number(openRevs[0].n) === 0) {
+        fs.unlink(req.file.path, () => {});
+        throw new HttpError(
+          409,
+          'Re-upload is only allowed when a reviewer has marked the document for revision.'
+        );
+      }
+
+      const oldStored = file.stored_name;
+
+      await conn.query(
+        `UPDATE files
+            SET original_name = ?,
+                stored_name   = ?,
+                mime_type     = 'application/pdf',
+                size_bytes    = ?,
+                current_level = ?,
+                status        = ?
+          WHERE id = ?`,
+        [
+          req.file.originalname.slice(0, 255),
+          req.file.filename,
+          req.file.size,
+          ROLES.COORDINATOR,
+          STATUS.UPLOADED,
+          file.id,
+        ]
+      );
+
+      // Auto-resolve every open revision: the teacher has just
+      // submitted the corrected PDF, so reviewers will assess the new
+      // version from a clean slate.
+      await conn.query(
+        `UPDATE comments
+            SET resolved_at = CURRENT_TIMESTAMP,
+                resolved_by = ?
+          WHERE file_id = ?
+            AND action = 'revision'
+            AND resolved_at IS NULL`,
+        [req.user.id, file.id]
+      );
+
+      await conn.query(
+        `INSERT INTO comments (file_id, user_id, role_level, action, body)
+         VALUES (?, ?, ?, 'comment', ?)`,
+        [
+          file.id,
+          req.user.id,
+          ROLES.TEACHER,
+          `Teacher re-uploaded a revised version (${req.file.originalname.slice(0, 200)}).`,
+        ]
+      );
+
+      await conn.commit();
+
+      // Best-effort: drop the previous PDF from disk now that the row
+      // points at the new file. Failure here is non-fatal.
+      if (oldStored) {
+        const prev = path.join(env.uploads.dir, oldStored);
+        const norm = path.normalize(prev);
+        if (norm.startsWith(env.uploads.dir)) {
+          fs.unlink(norm, () => {});
+        }
+      }
+
+      const [updated] = await pool.query(
+        `${FILE_SELECT} WHERE f.id = ? LIMIT 1`,
+        [file.id]
+      );
+
+      logger.info('files.reupload', {
+        reqId: req.id,
+        actor: req.user.id,
+        fileId: file.id,
+        size: req.file.size,
+      });
+
+      res.json({ file: shapeFile(updated[0]) });
+    } catch (e) {
+      await conn.rollback();
+      // If the new upload was saved by multer but the DB transaction
+      // failed, drop the orphan file so disk doesn't leak.
+      if (req.file && req.file.path) {
+        fs.unlink(req.file.path, () => {});
+      }
+      throw e;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   uploadFile,
   listFiles,
   getFile,
   downloadFile,
+  reuploadFile,
   loadVisibleFile,
   shapeFile,
 };

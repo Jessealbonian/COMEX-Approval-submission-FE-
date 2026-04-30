@@ -39,18 +39,20 @@ async function loadFileForAction(user, fileId) {
 }
 
 /**
- * Counts revisions at a given workflow level that have not been resolved.
- * Used to gate Coordinator/Master "forward" actions.
+ * Counts revision comments on a file that are still unresolved,
+ * regardless of which reviewer raised them. Any open revision blocks
+ * the workflow: Coordinator/Master can't forward, Principal can't
+ * finalize, until every revision is marked resolved (or the teacher
+ * re-uploads, which auto-resolves them).
  */
-async function unresolvedRevisionCount(conn, fileId, level) {
+async function unresolvedRevisionCount(conn, fileId) {
   const [rows] = await conn.query(
     `SELECT COUNT(*) AS n
        FROM comments
       WHERE file_id = ?
-        AND role_level = ?
         AND action = 'revision'
         AND resolved_at IS NULL`,
-    [fileId, level]
+    [fileId]
   );
   return Number(rows[0].n) || 0;
 }
@@ -193,15 +195,11 @@ async function forwardFile(req, res, next) {
         throw new HttpError(400, 'File is not at your level');
       }
 
-      const pending = await unresolvedRevisionCount(
-        conn,
-        file.id,
-        req.user.role_level
-      );
+      const pending = await unresolvedRevisionCount(conn, file.id);
       if (pending > 0) {
         throw new HttpError(
           409,
-          'Cannot forward: there are unresolved revisions at your level. Mark them resolved first.'
+          'Cannot forward: there are unresolved revisions on this document. Mark them all resolved first.'
         );
       }
 
@@ -267,6 +265,14 @@ async function finalizeFile(req, res, next) {
       if (!file) throw new HttpError(404, 'File not found');
       if (file.status === STATUS.FINALIZED) {
         throw new HttpError(409, 'File is already finalized');
+      }
+
+      const pending = await unresolvedRevisionCount(conn, file.id);
+      if (pending > 0) {
+        throw new HttpError(
+          409,
+          'Cannot finalize: there are unresolved revisions on this document. Mark them all resolved first.'
+        );
       }
 
       await conn.query(

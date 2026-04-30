@@ -10,7 +10,19 @@
 }
 
 .review-page {
-  padding: 1.25rem;
+  padding: 1rem;
+}
+
+/* Fullscreen mode: pull the entire review-page out as an overlay so
+   the PDF takes the whole viewport while comments/details stay in
+   the right column. */
+.review-page.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #f5f6f7;
+  overflow: auto;
+  padding: 0.75rem;
 }
 
 .banner {
@@ -43,30 +55,71 @@
   font-size: 0.9rem;
 }
 
-.muted.small {
+.muted.small,
+.small {
   font-size: 0.8rem;
 }
 
+/* ---------- Layout (matches wireframe) ----------
+   - Left column: large PDF preview
+   - Right column: stacked detail card (top) + timeline (bottom)
+   The PDF panel stays visible while typing comments because both
+   columns are siblings in the same grid row. */
+/* The grid fills the available viewport height so the PDF panel can
+   stretch full-height on the left while the right sidebar scrolls
+   independently. We use --row-h as a single tunable knob (overridden
+   in fullscreen mode below). */
 .review-grid {
-  align-items: start;
+  --row-h: calc(100vh - 9rem);
   display: grid;
   gap: 1rem;
-  grid-template-columns: 320px minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 3fr) minmax(300px, 1fr);
+  align-items: stretch;
+  height: var(--row-h);
 }
 
-@media (max-width: 1100px) {
+.review-page.fullscreen .review-grid {
+  --row-h: calc(100vh - 1.5rem);
+}
+
+@media (max-width: 1024px) {
   .review-grid {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+/* Right sidebar: stack details on top, timeline below. The whole
+   column scrolls as one independent region so the user can always
+   reach the Timeline regardless of how tall the details card grows.
+   The PDF panel on the left stays fixed at the row height and is
+   never pushed off-screen by content on the right. */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+  height: var(--row-h);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+@media (max-width: 1024px) {
+  .right-column {
+    height: auto;
+    overflow: visible;
   }
 }
 
 .card,
-.preview-panel,
-.comments-panel {
+.preview-panel {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow);
+}
+
+.card {
   padding: 1rem;
 }
 
@@ -76,28 +129,129 @@
   margin-bottom: 0.75rem;
 }
 
+/* ---------- Preview panel ---------- */
+.preview-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.preview-toolbar {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+}
+
+.preview-title-block {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.preview-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-subtitle {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.preview-toolbar-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1rem;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.icon-btn:hover {
+  background: #f3f4f6;
+}
+
+.preview-frame {
+  flex: 1 1 auto;
+  min-height: 320px;
+  background: #525659;
+}
+
+.preview-iframe {
+  border: 0;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.preview-empty {
+  align-items: center;
+  background: #fafafa;
+  color: var(--muted);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 320px;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* ---------- Detail card ---------- */
+.detail-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .meta {
   display: grid;
   gap: 0.5rem;
-  margin: 0 0 1rem;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 0 0.85rem;
 }
 
 .meta div {
   display: grid;
   gap: 0.15rem;
+  min-width: 0;
 }
 
 .meta dt {
   color: var(--muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
+  font-size: 0.7rem;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .meta dd {
   color: var(--primary-ink);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin: 0;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mono {
@@ -108,9 +262,9 @@
   border-radius: 999px;
   border: 1px solid var(--border);
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.2rem 0.6rem;
+  padding: 0.15rem 0.5rem;
 }
 
 .status-badge.pending {
@@ -131,13 +285,6 @@
   color: #166534;
 }
 
-.action-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0 0 0.85rem;
-}
-
 .field {
   display: grid;
   gap: 0.35rem;
@@ -146,7 +293,7 @@
 
 .field span {
   color: var(--primary-ink);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -155,16 +302,16 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   font-family: inherit;
-  font-size: 0.9rem;
-  min-height: 5.5rem;
-  padding: 0.55rem 0.7rem;
+  font-size: 0.85rem;
+  min-height: 4.5rem;
+  padding: 0.5rem 0.65rem;
   resize: vertical;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .btn {
@@ -172,8 +319,8 @@
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.85rem;
-  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.8rem;
 }
 
 .btn:disabled {
@@ -198,58 +345,37 @@
   color: var(--warning);
 }
 
-.preview-header {
-  display: grid;
-  gap: 0.2rem;
-  margin: 0 0 0.6rem;
-}
-
-.preview-title {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.preview-subtitle {
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.preview-frame {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  height: 70vh;
-  overflow: hidden;
-}
-
-.preview-iframe {
-  border: 0;
-  height: 100%;
-  width: 100%;
-}
-
-.preview-empty {
+.reupload-btn {
   align-items: center;
-  background: #fafafa;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
-  color: var(--muted);
-  display: flex;
-  height: 60vh;
+  display: inline-flex;
+  gap: 0.4rem;
   justify-content: center;
 }
 
-.comments-panel {
+.reupload-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---------- Timeline card ----------
+   The card flows naturally inside the scrollable right column, so we
+   no longer constrain its height; entries render in full and the
+   right column itself handles overflow. */
+.timeline-card {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  max-height: 80vh;
-  overflow-y: auto;
+}
+
+.timeline-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .comment-card {
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.6rem 0.75rem;
+  padding: 0.55rem 0.7rem;
 }
 
 .comment-meta {
@@ -260,7 +386,7 @@
 }
 
 .comment-author {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -268,14 +394,14 @@
   background: #f3f4f6;
   border-radius: 999px;
   color: #4b5563;
-  font-size: 0.7rem;
-  padding: 0.05rem 0.5rem;
+  font-size: 0.65rem;
+  padding: 0.05rem 0.45rem;
   text-transform: capitalize;
 }
 
 .comment-action {
   color: #4b5563;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   letter-spacing: 0.04em;
   margin: 0.2rem 0;
   text-transform: uppercase;
@@ -291,13 +417,13 @@
 
 .comment-text {
   color: var(--primary-ink);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   white-space: pre-wrap;
 }
 
 .comment-time {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   margin-top: 0.25rem;
 }
 
@@ -311,11 +437,11 @@
 
 .resolve-pill {
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  margin-left: 0.5rem;
-  padding: 0.05rem 0.45rem;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
   text-transform: uppercase;
   vertical-align: middle;
 }
@@ -332,14 +458,14 @@
 
 .comment-resolution {
   color: #166534;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   margin-top: 0.3rem;
 }
 
 .comment-action-row {
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 .btn-resolve {

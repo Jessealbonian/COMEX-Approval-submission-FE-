@@ -10,6 +10,7 @@ const {
   listFiles,
   getFile,
   downloadFile,
+  reuploadFile,
 } = require('../controllers/fileController');
 const {
   addComment,
@@ -32,6 +33,17 @@ router.post(
   upload.single('file'),
   verifyPdfMagic,
   asyncHandler(uploadFile)
+);
+
+// Teacher-only re-upload: replaces the PDF on an existing file row
+// when a reviewer has flagged it for revision. Same id, same
+// transaction; the PDF blob and workflow stage are reset.
+router.post(
+  '/:id/reupload',
+  requireRole(ROLES.TEACHER),
+  upload.single('file'),
+  verifyPdfMagic,
+  asyncHandler(reuploadFile)
 );
 
 // Listing/viewing/downloading is filtered by visibility in the controller.

@@ -24,26 +24,22 @@ const NAV_LINKS: Record<AppSection, NavItem[]> = {
   admin: [
     { label: 'Dashboard', icon: 'dashboard', route: '/admin/dashboard' },
     { label: 'Document', icon: 'description', route: '/admin/document' },
-    { label: 'Files', icon: 'folder', route: '/admin/files' },
     { label: 'Account', icon: 'person_add', route: '/admin/account' },
   ],
   teacher: [
     { label: 'Home', icon: 'home', route: '/teacher/home' },
     { label: 'Documents', icon: 'description', route: '/teacher/documents' },
-    { label: 'File', icon: 'insert_drive_file', route: '/teacher/file' },
     { label: 'Upload', icon: 'upload_file', route: '/teacher/upload' },
   ],
   coard: [
     { label: 'Dashboard', icon: 'dashboard', route: '/coard/dashboard' },
     { label: 'Document', icon: 'description', route: '/coard/document' },
     { label: 'History', icon: 'history', route: '/coard/history' },
-    { label: 'File', icon: 'insert_drive_file', route: '/coard/file' },
   ],
   master: [
     { label: 'Dashboard', icon: 'dashboard', route: '/master/dashboard' },
     { label: 'Document', icon: 'description', route: '/master/document' },
     { label: 'History', icon: 'history', route: '/master/history' },
-    { label: 'File', icon: 'insert_drive_file', route: '/master/file' },
   ],
 };
 
