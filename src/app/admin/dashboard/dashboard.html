@@ -2,7 +2,7 @@
 	<header class="dashboard-header">
 		<div>
 			<p class="eyebrow">Principal Console</p>
-			<h1>Approval & Access Overview</h1>
+			<h1>Welcome back, {{ userName }}</h1>
 			<p class="subtitle">
 				Review submissions, track revisions, and manage educator access across all levels.
 			</p>
@@ -10,18 +10,21 @@
 		<div class="summary">
 			<div class="summary-card">
 				<span class="summary-label">Pending Reviews</span>
-				<span class="summary-value">12</span>
+				<span class="summary-value">{{ pending }}</span>
 			</div>
 			<div class="summary-card">
-				<span class="summary-label">For Revision</span>
-				<span class="summary-value">4</span>
+				<span class="summary-label">In Review</span>
+				<span class="summary-value">{{ inReview }}</span>
 			</div>
 			<div class="summary-card">
-				<span class="summary-label">Approved</span>
-				<span class="summary-value">27</span>
+				<span class="summary-label">Finalized</span>
+				<span class="summary-value">{{ finalized }}</span>
 			</div>
 		</div>
 	</header>
+
+	<p class="muted" *ngIf="loading()">Loading latest activity...</p>
+	<p class="error-banner" *ngIf="errorMessage()">{{ errorMessage() }}</p>
 
 	<div class="grid">
 		<section class="card">
@@ -32,79 +35,51 @@
 				<li>Confirm revision status and send feedback to lower levels.</li>
 				<li>Create lower-level accounts and manage user roles.</li>
 			</ul>
-		</section>
-
-		<section class="card">
-			<h2>Create Lower-Level Account</h2>
-			<form class="account-form">
-				<label>
-					Email
-					<input type="email" placeholder="teacher@school.edu" />
-				</label>
-				<label>
-					Name
-					<input type="text" placeholder="Last name, First name" />
-				</label>
-				<label>
-					Initial Password
-					<input type="password" placeholder="Temporary password" />
-				</label>
-				<label>
-					User Level
-					<select>
-						<option>Teacher (Level 1)</option>
-						<option>Coord (Level 2)</option>
-						<option>Master (Level 3)</option>
-					</select>
-				</label>
-				<div class="form-actions">
-					<button type="button" class="ghost">Cancel</button>
-					<button type="button" class="primary">Create Account</button>
-				</div>
-			</form>
+			<button type="button" class="primary" (click)="goToAccounts()">Manage Accounts</button>
 		</section>
 
 		<section class="card wide">
 			<div class="card-header">
-				<h2>Teacher Overview</h2>
-				<div class="filters">
-					<button type="button" class="pill active">All</button>
-					<button type="button" class="pill">Pending</button>
-					<button type="button" class="pill">Revision</button>
-				</div>
+				<h2>Recent Submissions</h2>
+				<a routerLink="/admin/document" class="link">See all &rarr;</a>
 			</div>
 			<div class="table-wrap">
 				<table>
 					<thead>
 						<tr>
-							<th>Teacher</th>
-							<th>Department</th>
-							<th>Open Submissions</th>
-							<th>Last Activity</th>
+							<th>ID</th>
+							<th>Title</th>
+							<th>Submitted by</th>
+							<th>Submitted on</th>
 							<th>Status</th>
 						</tr>
 					</thead>
 					<tbody>
-						<tr>
-							<td>Justin Marrocon Cortez</td>
-							<td>Records</td>
-							<td>2</td>
-							<td>Apr 26, 2026</td>
-							<td><span class="status pending">Pending</span></td>
+						<tr
+							*ngFor="let file of recent"
+							class="row"
+							tabindex="0"
+							(click)="open(file)"
+							(keydown.enter)="open(file)"
+							(keydown.space)="open(file)"
+						>
+							<td>#{{ file.id }}</td>
+							<td>{{ file.title }}</td>
+							<td>{{ file.uploaded_by.name }}</td>
+							<td>{{ file.created_at | date: 'mediumDate' }}</td>
+							<td>
+								<span
+									class="status"
+									[class.pending]="file.status === 'uploaded' || file.status === 'returned'"
+									[class.revision]="file.status === 'reviewed_by_coordinator' || file.status === 'reviewed_by_master'"
+									[class.approved]="file.status === 'finalized'"
+								>
+									{{ statusLabel(file.status) }}
+								</span>
+							</td>
 						</tr>
-						<tr>
-							<td>Jane Smith</td>
-							<td>Guidance</td>
-							<td>1</td>
-							<td>Apr 24, 2026</td>
-							<td><span class="status revision">For Revision</span></td>
-						</tr>
-						<tr>
-							<td>Mark Rivera</td>
-							<td>Registrar</td>
-							<td>0</td>
-							<td>Apr 22, 2026</td>
-							<td><span class="status approved">Approved</span></td>
+						<tr *ngIf="!loading() && recent.length === 0">
+							<td colspan="5" class="muted">No submissions yet.</td>
 						</tr>
 					</tbody>
 				</table>

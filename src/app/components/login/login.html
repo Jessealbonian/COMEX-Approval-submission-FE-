@@ -13,7 +13,7 @@
 			<p class="role-label">{{ roleLabel }} Portal Login</p>
 		</div>
 
-		<form class="login-form">
+		<form class="login-form" (ngSubmit)="submit()" #f="ngForm" novalidate>
 			<label class="field" for="email">
 				<span>Email Address</span>
 				<div class="input-shell">
@@ -23,8 +23,11 @@
 						type="email"
 						placeholder="@gmail.com"
 						autocomplete="email"
+						required
+						[(ngModel)]="email"
+						[disabled]="submitting()"
 					/>
-					<span class="field-icon" aria-hidden="true">✉</span>
+					<span class="field-icon" aria-hidden="true">&#9993;</span>
 				</div>
 			</label>
 
@@ -37,16 +40,29 @@
 						type="password"
 						placeholder="Enter your password"
 						autocomplete="current-password"
+						required
+						[(ngModel)]="password"
+						[disabled]="submitting()"
 					/>
-					<span class="field-icon" aria-hidden="true">⌂</span>
+					<span class="field-icon" aria-hidden="true">&#8962;</span>
 				</div>
 			</label>
+
+			<div class="form-error" role="alert" *ngIf="errorMessage()">
+				{{ errorMessage() }}
+			</div>
 
 			<div class="form-links">
 				<a href="#" aria-label="Recover your password">Forgot Password?</a>
 			</div>
 
-			<button type="submit" class="primary-action">Login</button>
+			<button
+				type="submit"
+				class="primary-action"
+				[disabled]="submitting() || f.invalid"
+			>
+				{{ submitting() ? 'Signing in...' : 'Login' }}
+			</button>
 		</form>
 	</section>
 

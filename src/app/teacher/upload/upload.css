@@ -90,6 +90,41 @@
   margin-top: 0.6rem;
 }
 
+.success {
+  color: #166534;
+  font-size: 0.85rem;
+  margin-top: 0.6rem;
+}
+
+.meta-field {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+}
+
+.meta-field span {
+  color: var(--primary-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.meta-field input,
+.meta-field textarea {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.7rem;
+  resize: vertical;
+}
+
+.meta-field input:focus,
+.meta-field textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
 .sample-row {
   margin-top: 0.8rem;
 }

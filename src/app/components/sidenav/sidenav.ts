@@ -1,6 +1,6 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,7 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 
 import { Header } from '../header/header';
+import { AuthService } from '../../core/services/auth.service';
 
 interface NavItem {
   label: string;
@@ -73,6 +74,8 @@ export class Sidenav implements OnInit, OnDestroy {
   fixedBottomGap = 0;
 
   @ViewChild('sidenav') sidenav!: MatSidenav;
+
+  private readonly auth = inject(AuthService);
 
   constructor(
     public router: Router,
@@ -157,9 +160,13 @@ export class Sidenav implements OnInit, OnDestroy {
     });
 
     dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.router.navigate([`/${this.currentSection}/login`]);
-      }
+      if (!confirmed) return;
+      // Wait for the backend to invalidate the JWT (token_version bump)
+      // before navigating, so this device cannot keep using the old token
+      // even for an instant. logout() always resolves successfully.
+      this.auth.logout().subscribe(() => {
+        this.router.navigate(['/login']);
+      });
     });
   }
 

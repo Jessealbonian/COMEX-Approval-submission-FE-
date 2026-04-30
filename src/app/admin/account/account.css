@@ -316,3 +316,37 @@ button.primary.lg {
 		padding: 0.6rem 0.8rem;
 	}
 }
+
+.muted {
+	color: var(--muted);
+	font-size: 0.85rem;
+}
+
+.status-banner {
+	border-radius: 8px;
+	font-size: 0.9rem;
+	margin: 0 0 1rem;
+	padding: 0.6rem 0.85rem;
+}
+
+.status-banner.success {
+	background: #ecfdf5;
+	border: 1px solid #a7f3d0;
+	color: #166534;
+}
+
+.status-banner.error {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	color: #b91c1c;
+}
+
+.level-badge.principal {
+	background: rgba(124, 58, 237, 0.12);
+	color: #5b21b6;
+}
+
+.action-btn:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}

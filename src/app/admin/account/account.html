@@ -8,10 +8,15 @@
 		<button class="primary lg" (click)="openModal()">+ Create New Account</button>
 	</header>
 
-	<!-- Accounts Table -->
+	<div class="status-banner success" *ngIf="successMessage()">{{ successMessage() }}</div>
+	<div class="status-banner error" *ngIf="errorMessage() && !isModalOpen">{{ errorMessage() }}</div>
+
 	<section class="card">
 		<h2>Active Accounts</h2>
-		<table class="accounts-table">
+
+		<p class="muted" *ngIf="loading()">Loading accounts...</p>
+
+		<table class="accounts-table" *ngIf="!loading()">
 			<thead>
 				<tr>
 					<th>ID</th>
@@ -26,61 +31,91 @@
 					<td class="id">{{ account.id }}</td>
 					<td>{{ account.email }}</td>
 					<td>{{ account.name }}</td>
-					<td><span class="level-badge" [ngClass]="account.userLevel.toLowerCase()">{{ account.userLevel }}</span></td>
-					<td class="actions-cell">
-						<button class="action-btn edit">Edit</button>
-						<button class="action-btn delete">Delete</button>
+					<td>
+						<span class="level-badge" [ngClass]="account.userLevel.toLowerCase()">
+							{{ account.userLevel }}
+						</span>
 					</td>
+					<td class="actions-cell">
+						<button class="action-btn edit" disabled>Edit</button>
+						<button class="action-btn delete" disabled>Delete</button>
+					</td>
+				</tr>
+				<tr *ngIf="accounts.length === 0">
+					<td colspan="5" class="muted">No accounts yet.</td>
 				</tr>
 			</tbody>
 		</table>
 	</section>
 
-	<!-- Modal Overlay -->
 	<div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()"></div>
 
-	<!-- Modal Dialog -->
 	<div class="modal" *ngIf="isModalOpen">
 		<div class="modal-content" (click)="$event.stopPropagation()">
 			<div class="modal-header">
 				<h2>Create New Account</h2>
-				<button class="close-btn" (click)="closeModal()">✕</button>
+				<button class="close-btn" (click)="closeModal()">&#10005;</button>
 			</div>
 
-			<form class="account-form">
-				<label>
-					ID
-					<input type="text" [value]="formData.id" readonly />
-				</label>
-
+			<form class="account-form" (ngSubmit)="createAccount()">
 				<label>
 					Email
-					<input type="email" placeholder="teacher@school.edu" [(ngModel)]="formData.email" name="email" />
+					<input
+						type="email"
+						placeholder="teacher@school.edu"
+						[(ngModel)]="formData.email"
+						name="email"
+						autocomplete="off"
+						[disabled]="creating()"
+						required
+					/>
 				</label>
 
 				<label>
 					Name
-					<input type="text" placeholder="Last name, First name" [(ngModel)]="formData.name" name="name" />
+					<input
+						type="text"
+						placeholder="Last name, First name"
+						[(ngModel)]="formData.name"
+						name="name"
+						[disabled]="creating()"
+						required
+					/>
 				</label>
 
 				<label>
-					Password
-					<input type="text" [value]="formData.password" readonly />
-					<span class="hint">Preset password for first login.</span>
+					Initial Password
+					<input
+						type="text"
+						[(ngModel)]="formData.password"
+						name="password"
+						autocomplete="new-password"
+						[disabled]="creating()"
+						required
+					/>
+					<span class="hint">At least 8 characters with letters and digits. The user can change it after first login.</span>
 				</label>
 
 				<label>
 					User Level
-					<select [(ngModel)]="formData.userLevel" name="userLevel">
+					<select
+						[(ngModel)]="formData.userLevel"
+						name="userLevel"
+						[disabled]="creating()"
+					>
 						<option value="Teacher">Teacher</option>
 						<option value="Coord">Coord</option>
 						<option value="Master">Master</option>
 					</select>
 				</label>
 
+				<div class="status-banner error" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+
 				<div class="form-actions modal-actions">
-					<button type="button" class="ghost" (click)="resetForm()">Reset</button>
-					<button type="button" class="primary" (click)="createAccount()">Create Account</button>
+					<button type="button" class="ghost" (click)="resetForm()" [disabled]="creating()">Reset</button>
+					<button type="submit" class="primary" [disabled]="creating()">
+						{{ creating() ? 'Creating...' : 'Create Account' }}
+					</button>
 				</div>
 			</form>
 		</div>

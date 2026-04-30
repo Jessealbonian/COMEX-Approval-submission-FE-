@@ -1,0 +1,140 @@
+<div class="review-page">
+  <div class="banner error" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+  <div class="banner success" *ngIf="successMessage()">{{ successMessage() }}</div>
+  <p class="muted" *ngIf="loading() && !file">Loading document...</p>
+
+  <div class="review-grid" *ngIf="file as f">
+    <section class="card action-card" aria-label="Actions">
+      <div class="card-title">Document Details</div>
+
+      <dl class="meta">
+        <div>
+          <dt>Transaction</dt>
+          <dd class="mono">#{{ f.id }}</dd>
+        </div>
+        <div>
+          <dt>Title</dt>
+          <dd>{{ f.title }}</dd>
+        </div>
+        <div>
+          <dt>File</dt>
+          <dd>{{ f.original_name }}</dd>
+        </div>
+        <div>
+          <dt>Submitted by</dt>
+          <dd>{{ f.uploaded_by.name }}</dd>
+        </div>
+        <div>
+          <dt>Submitted on</dt>
+          <dd>{{ f.created_at | date: 'longDate' }}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <span
+              class="status-badge"
+              [class.pending]="f.status === 'uploaded' || f.status === 'returned'"
+              [class.in-review]="f.status === 'reviewed_by_coordinator' || f.status === 'reviewed_by_master'"
+              [class.done]="f.status === 'finalized'"
+            >
+              {{ statusLabel(f.status) }}
+            </span>
+          </dd>
+        </div>
+      </dl>
+
+      <div class="action-row">
+        <button type="button" class="btn btn-secondary" (click)="download()">
+          Download PDF
+        </button>
+      </div>
+
+      <ng-container *ngIf="canComment || canForward || canFinalize">
+        <label class="field">
+          <span>Add comment / revision note</span>
+          <textarea
+            rows="4"
+            placeholder="Type your note for the next reviewer..."
+            [(ngModel)]="commentBody"
+            [disabled]="acting()"
+          ></textarea>
+        </label>
+
+        <div class="actions">
+          <button
+            *ngIf="canComment"
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="acting()"
+            (click)="postComment()"
+          >
+            Post comment
+          </button>
+          <button
+            *ngIf="canComment"
+            type="button"
+            class="btn btn-warning"
+            [disabled]="acting()"
+            (click)="postRevision()"
+          >
+            Mark for revision
+          </button>
+          <button
+            *ngIf="canForward"
+            type="button"
+            class="btn btn-primary"
+            [disabled]="acting()"
+            (click)="forward()"
+          >
+            Forward to next level
+          </button>
+          <button
+            *ngIf="canFinalize"
+            type="button"
+            class="btn btn-primary"
+            [disabled]="acting()"
+            (click)="finalize()"
+          >
+            Finalize
+          </button>
+        </div>
+      </ng-container>
+
+      <p class="muted small" *ngIf="!canComment && !canForward && !canFinalize">
+        This document is not currently at your review stage.
+      </p>
+    </section>
+
+    <section class="preview-panel" aria-label="Document preview">
+      <div class="preview-header">
+        <div class="preview-title">{{ f.original_name }}</div>
+        <div class="preview-subtitle">
+          Transaction #{{ f.id }} | Submitted by <strong>{{ f.uploaded_by.name }}</strong>
+        </div>
+      </div>
+
+      <div class="preview-frame" *ngIf="pdfUrl; else noPreview">
+        <iframe class="preview-iframe" [src]="pdfUrl" title="PDF preview"></iframe>
+      </div>
+      <ng-template #noPreview>
+        <div class="preview-empty">PDF preview unavailable.</div>
+      </ng-template>
+    </section>
+
+    <aside class="comments-panel" aria-label="Comments timeline">
+      <div class="card-title">Timeline</div>
+      <div class="comment-card" *ngFor="let c of comments">
+        <div class="comment-meta">
+          <span class="comment-author">{{ c.user.name }}</span>
+          <span class="comment-role">{{ c.role }}</span>
+        </div>
+        <div class="comment-action" [class.revision]="c.action === 'revision'" [class.system]="c.action === 'forward' || c.action === 'finalize'">
+          {{ c.action }}
+        </div>
+        <div class="comment-text">{{ c.body }}</div>
+        <div class="comment-time">{{ c.created_at | date: 'short' }}</div>
+      </div>
+      <p class="muted" *ngIf="comments.length === 0">No comments yet.</p>
+    </aside>
+  </div>
+</div>

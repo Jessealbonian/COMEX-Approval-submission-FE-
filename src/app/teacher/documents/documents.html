@@ -3,7 +3,10 @@
     <div class="card">
       <div class="card-title">Documents</div>
 
-      <div class="table-wrap" role="region" aria-label="Documents table">
+      <p class="muted-row" *ngIf="loading()">Loading documents...</p>
+      <p class="error-row" *ngIf="errorMessage() && !loading()">{{ errorMessage() }}</p>
+
+      <div class="table-wrap" role="region" aria-label="Documents table" *ngIf="!loading() && !errorMessage()">
         <table class="table">
           <thead>
             <tr>
@@ -67,6 +70,9 @@
                 </span>
               </td>
               <td>{{ row.revisions }}</td>
+            </tr>
+            <tr *ngIf="rows.length === 0">
+              <td colspan="11" class="muted-row">You haven't submitted any documents yet.</td>
             </tr>
           </tbody>
         </table>

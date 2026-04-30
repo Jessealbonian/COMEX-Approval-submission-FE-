@@ -33,31 +33,55 @@
       <div class="selected-name">{{ selectedFile.name }}</div>
     </div>
 
-    <div class="error" *ngIf="uploadError">{{ uploadError }}</div>
+    <label class="meta-field">
+      <span>Title</span>
+      <input
+        type="text"
+        name="title"
+        placeholder="e.g. Q1 Lesson Plan"
+        [(ngModel)]="title"
+        [disabled]="submitting()"
+      />
+    </label>
 
-    <div class="sample-row">
-      <button type="button" class="sample-link" (click)="downloadSampleTemplate()">
-        Download sample template
-      </button>
-    </div>
+    <label class="meta-field">
+      <span>Description (optional)</span>
+      <textarea
+        name="description"
+        rows="3"
+        placeholder="Briefly describe this submission"
+        [(ngModel)]="description"
+        [disabled]="submitting()"
+      ></textarea>
+    </label>
+
+    <div class="error" *ngIf="uploadError">{{ uploadError }}</div>
+    <div class="success" *ngIf="successMessage()">{{ successMessage() }}</div>
 
     <div class="actions">
-      <button type="button" class="btn btn-secondary" (click)="cancelSelection()">Cancel</button>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="cancelSelection()"
+        [disabled]="submitting()"
+      >
+        Cancel
+      </button>
       <button
         type="button"
         class="btn btn-primary"
-        [disabled]="!selectedFile"
-        (click)="continueSelection()"
+        [disabled]="!selectedFile || submitting()"
+        (click)="submitUpload()"
       >
-        Continue
+        {{ submitting() ? 'Submitting...' : 'Submit' }}
       </button>
     </div>
   </section>
 
   <section class="preview-panel" aria-label="Document preview">
     <div class="preview-header">
-      <div class="preview-title">{{ documentName }}</div>
-      <div class="preview-subtitle">
+      <div class="preview-title">{{ documentName || 'No file selected' }}</div>
+      <div class="preview-subtitle" *ngIf="submittedAt">
         Submitted by: <strong>{{ submittedBy }}</strong> |
         Submitted on: {{ submittedAt | date: 'longDate' }}
       </div>

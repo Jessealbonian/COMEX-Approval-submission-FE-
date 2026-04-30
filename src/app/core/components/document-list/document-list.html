@@ -1,0 +1,54 @@
+<div class="content">
+  <main class="main" role="main">
+    <div class="card">
+      <div class="card-title">Documents</div>
+
+      <p class="muted-row" *ngIf="loading()">Loading documents...</p>
+      <p class="error-row" *ngIf="errorMessage() && !loading()">{{ errorMessage() }}</p>
+
+      <div class="table-wrap" role="region" aria-label="Documents table" *ngIf="!loading() && !errorMessage()">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>File</th>
+              <th>Submitted by</th>
+              <th>Submitted on</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let row of rows"
+              class="row"
+              tabindex="0"
+              (click)="open(row)"
+              (keydown.enter)="open(row)"
+              (keydown.space)="open(row)"
+            >
+              <td class="mono">#{{ row.id }}</td>
+              <td>{{ row.title }}</td>
+              <td>{{ row.name }}</td>
+              <td>{{ row.submittedBy }}</td>
+              <td>{{ row.submittedOn | date: 'mediumDate' }}</td>
+              <td>
+                <span
+                  class="status"
+                  [class.pending]="row.status === 'uploaded' || row.status === 'returned'"
+                  [class.in-review]="row.status === 'reviewed_by_coordinator' || row.status === 'reviewed_by_master'"
+                  [class.done]="row.status === 'finalized'"
+                >
+                  {{ row.statusLabel }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="rows.length === 0">
+              <td colspan="6" class="muted-row">No documents to show.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
