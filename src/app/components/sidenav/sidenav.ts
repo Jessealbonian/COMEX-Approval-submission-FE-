@@ -17,17 +17,30 @@ interface NavItem {
   route: string;
 }
 
-type AppSection = 'admin' | 'teacher';
+type AppSection = 'admin' | 'teacher' | 'coard' | 'master';
 
 const NAV_LINKS: Record<AppSection, NavItem[]> = {
   admin: [
     { label: 'Dashboard', icon: 'dashboard', route: '/admin/dashboard' },
     { label: 'Document', icon: 'description', route: '/admin/document' },
+    { label: 'Files', icon: 'folder', route: '/admin/files' },
+    { label: 'Account', icon: 'person_add', route: '/admin/account' },
   ],
   teacher: [
     { label: 'Home', icon: 'home', route: '/teacher/home' },
     { label: 'Documents', icon: 'description', route: '/teacher/documents' },
+    { label: 'File', icon: 'insert_drive_file', route: '/teacher/file' },
     { label: 'Upload', icon: 'upload_file', route: '/teacher/upload' },
+  ],
+  coard: [
+    { label: 'Dashboard', icon: 'dashboard', route: '/coard/dashboard' },
+    { label: 'Document', icon: 'description', route: '/coard/document' },
+    { label: 'File', icon: 'insert_drive_file', route: '/coard/file' },
+  ],
+  master: [
+    { label: 'Dashboard', icon: 'dashboard', route: '/master/dashboard' },
+    { label: 'Document', icon: 'description', route: '/master/document' },
+    { label: 'File', icon: 'insert_drive_file', route: '/master/file' },
   ],
 };
 
@@ -119,7 +132,18 @@ export class Sidenav implements OnInit, OnDestroy {
   }
 
   get sectionLabel(): string {
-    return this.currentSection === 'admin' ? 'Admin' : 'Teacher';
+    switch (this.currentSection) {
+      case 'admin':
+        return 'Principal';
+      case 'teacher':
+        return 'Teacher';
+      case 'coard':
+        return 'Coord';
+      case 'master':
+        return 'Master';
+      default:
+        return '';
+    }
   }
 
   toggleSidenav(): void {
@@ -143,15 +167,21 @@ export class Sidenav implements OnInit, OnDestroy {
     const path = url.split('?')[0].split('#')[0];
     const isAdminSection = path.startsWith('/admin');
     const isTeacherSection = path.startsWith('/teacher');
+    const isCoardSection = path.startsWith('/coard');
+    const isMasterSection = path.startsWith('/master');
     const isLoginPage = path.endsWith('/login');
 
     if (isTeacherSection) {
       this.currentSection = 'teacher';
+    } else if (isCoardSection) {
+      this.currentSection = 'coard';
+    } else if (isMasterSection) {
+      this.currentSection = 'master';
     } else if (isAdminSection) {
       this.currentSection = 'admin';
     }
 
-    this.shouldRun = (isAdminSection || isTeacherSection) && !isLoginPage;
+    this.shouldRun = (isAdminSection || isTeacherSection || isCoardSection || isMasterSection) && !isLoginPage;
 
     if (!this.isMobile) {
       this.opened = this.shouldRun;

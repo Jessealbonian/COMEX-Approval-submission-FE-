@@ -87,11 +87,58 @@
 	align-items: start;
 }
 
+.doc-content.review-layout {
+	grid-template-columns: 300px minmax(0, 1fr) 280px;
+}
+
 .card {
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: 10px;
 	box-shadow: var(--shadow);
+}
+
+.review-card {
+	padding: 1rem;
+}
+
+.meta {
+	display: grid;
+	gap: 0.45rem;
+	margin-bottom: 0.9rem;
+}
+
+.meta-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.5rem;
+	font-size: 0.85rem;
+	color: #6b7280;
+}
+
+.meta-row strong {
+	color: var(--primary-ink);
+}
+
+.field {
+	display: grid;
+	gap: 0.35rem;
+	font-size: 0.85rem;
+	color: #6b7280;
+	margin-bottom: 0.75rem;
+}
+
+.field select,
+.field textarea {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	font-family: inherit;
+	font-size: 0.9rem;
+	padding: 0.5rem 0.6rem;
+}
+
+.field textarea {
+	resize: vertical;
 }
 
 .upload-card {

@@ -1,1 +1,23 @@
 /* You can add global styles to this file, and also import other style files */
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+}
+
+body {
+	font-family: 'Poppins', 'Roboto', 'Segoe UI', Arial, sans-serif;
+	color: #1f2a2e;
+}
+
+button,
+input,
+select,
+textarea {
+	font-family: inherit;
+}

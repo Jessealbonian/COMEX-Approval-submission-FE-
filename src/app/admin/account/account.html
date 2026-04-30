@@ -1,0 +1,88 @@
+<section class="account-shell">
+	<header class="account-header">
+		<div>
+			<p class="eyebrow">Principal Tools</p>
+			<h1>Manage Accounts</h1>
+			<p class="subtitle">Set up lower-level access for teachers, coordinators, and masters.</p>
+		</div>
+		<button class="primary lg" (click)="openModal()">+ Create New Account</button>
+	</header>
+
+	<!-- Accounts Table -->
+	<section class="card">
+		<h2>Active Accounts</h2>
+		<table class="accounts-table">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Email</th>
+					<th>Name</th>
+					<th>User Level</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr *ngFor="let account of accounts">
+					<td class="id">{{ account.id }}</td>
+					<td>{{ account.email }}</td>
+					<td>{{ account.name }}</td>
+					<td><span class="level-badge" [ngClass]="account.userLevel.toLowerCase()">{{ account.userLevel }}</span></td>
+					<td class="actions-cell">
+						<button class="action-btn edit">Edit</button>
+						<button class="action-btn delete">Delete</button>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</section>
+
+	<!-- Modal Overlay -->
+	<div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()"></div>
+
+	<!-- Modal Dialog -->
+	<div class="modal" *ngIf="isModalOpen">
+		<div class="modal-content" (click)="$event.stopPropagation()">
+			<div class="modal-header">
+				<h2>Create New Account</h2>
+				<button class="close-btn" (click)="closeModal()">✕</button>
+			</div>
+
+			<form class="account-form">
+				<label>
+					ID
+					<input type="text" [value]="formData.id" readonly />
+				</label>
+
+				<label>
+					Email
+					<input type="email" placeholder="teacher@school.edu" [(ngModel)]="formData.email" name="email" />
+				</label>
+
+				<label>
+					Name
+					<input type="text" placeholder="Last name, First name" [(ngModel)]="formData.name" name="name" />
+				</label>
+
+				<label>
+					Password
+					<input type="text" [value]="formData.password" readonly />
+					<span class="hint">Preset password for first login.</span>
+				</label>
+
+				<label>
+					User Level
+					<select [(ngModel)]="formData.userLevel" name="userLevel">
+						<option value="Teacher">Teacher</option>
+						<option value="Coord">Coord</option>
+						<option value="Master">Master</option>
+					</select>
+				</label>
+
+				<div class="form-actions modal-actions">
+					<button type="button" class="ghost" (click)="resetForm()">Reset</button>
+					<button type="button" class="primary" (click)="createAccount()">Create Account</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</section>

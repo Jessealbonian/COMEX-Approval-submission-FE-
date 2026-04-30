@@ -1,57 +1,39 @@
 <div class="doc-page">
-  <main class="doc-content" role="main">
-    <section class="card upload-card" aria-label="Upload replacement PDF">
-      <div class="card-title">Upload New Version</div>
-
-      <input
-        #fileInput
-        type="file"
-        accept="application/pdf,.pdf"
-        hidden
-        (change)="onFileInputChange($event)"
-      />
-
-      <div
-        class="dropzone"
-        role="button"
-        tabindex="0"
-        [class.dragging]="isDragging"
-        (click)="triggerFilePicker()"
-        (keydown.enter)="triggerFilePicker()"
-        (keydown.space)="triggerFilePicker()"
-        (dragover)="onDragOver($event)"
-        (dragleave)="onDragLeave($event)"
-        (drop)="onDrop($event)"
-      >
-        <div class="dropzone-inner">
-          <div class="upload-icon">PDF</div>
-          <div class="dropzone-primary">Drop your PDF here or click to browse.</div>
-          <div class="dropzone-secondary">Only PDF files are supported.</div>
+  <main class="doc-content review-layout" role="main">
+    <section class="card review-card" aria-label="Revision actions">
+      <div class="card-title">Revision Actions</div>
+      <div class="meta">
+        <div class="meta-row">
+          <span>Transaction</span>
+          <strong>{{ currentDocumentId }}</strong>
+        </div>
+        <div class="meta-row">
+          <span>Submitted by</span>
+          <strong>{{ submittedBy }}</strong>
+        </div>
+        <div class="meta-row">
+          <span>Submitted on</span>
+          <strong>{{ submittedAt | date: 'longDate' }}</strong>
         </div>
       </div>
 
-      <div class="selected" *ngIf="selectedFile">
-        <div class="selected-name">{{ selectedFile.name }}</div>
-      </div>
+      <label class="field">
+        <span>Status</span>
+        <select>
+          <option>Checked</option>
+          <option>For Revision</option>
+          <option>Pending</option>
+        </select>
+      </label>
 
-      <div class="error" *ngIf="uploadError">{{ uploadError }}</div>
-
-      <div class="sample-row">
-        <button type="button" class="sample-link" (click)="downloadSampleTemplate()">
-          Download sample template
-        </button>
-      </div>
+      <label class="field">
+        <span>Add comment / revision</span>
+        <textarea rows="5" placeholder="Add notes for the teacher..."></textarea>
+      </label>
 
       <div class="actions">
-        <button type="button" class="btn btn-secondary" (click)="cancelSelection()">Cancel</button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          [disabled]="!selectedFile"
-          (click)="continueSelection()"
-        >
-          Continue
-        </button>
+        <button type="button" class="btn btn-secondary">Clear</button>
+        <button type="button" class="btn btn-primary">Post Comment</button>
       </div>
     </section>
 
