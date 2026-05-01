@@ -379,19 +379,6 @@ async function reuploadFile(req, res, next) {
         ]
       );
 
-      // Auto-resolve every open revision: the teacher has just
-      // submitted the corrected PDF, so reviewers will assess the new
-      // version from a clean slate.
-      await conn.query(
-        `UPDATE comments
-            SET resolved_at = CURRENT_TIMESTAMP,
-                resolved_by = ?
-          WHERE file_id = ?
-            AND action = 'revision'
-            AND resolved_at IS NULL`,
-        [req.user.id, file.id]
-      );
-
       await conn.query(
         `INSERT INTO comments (file_id, user_id, role_level, action, body)
          VALUES (?, ?, ?, 'comment', ?)`,
