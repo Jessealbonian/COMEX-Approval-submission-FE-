@@ -73,6 +73,29 @@
   font-family: 'Courier New', monospace;
 }
 
+.doc-type {
+  border-radius: 6px;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.25rem 0.5rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.doc-type-dlp {
+  background: #eef6f6;
+  border: 1px solid #c5d4d4;
+  color: #2f4f4f;
+}
+
+.doc-type-exam {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
 .status {
   border: 1px solid var(--border);
   border-radius: 999px;

@@ -31,6 +31,7 @@
         <thead>
           <tr>
             <th>ID</th>
+            <th>Type</th>
             <th>Title</th>
             <th>Submitted by</th>
             <th>Submitted on</th>
@@ -46,12 +47,21 @@
             (keydown.space)="open(file)"
           >
             <td>#{{ file.id }}</td>
+            <td>
+              <span
+                class="doc-type"
+                [class.doc-type-dlp]="file.document_type !== 'examination'"
+                [class.doc-type-exam]="file.document_type === 'examination'"
+              >
+                {{ docTypeLabel(file.document_type) }}
+              </span>
+            </td>
             <td>{{ file.title }}</td>
             <td>{{ file.uploaded_by.name }}</td>
             <td>{{ file.created_at | date: 'mediumDate' }}</td>
           </tr>
           <tr *ngIf="!loading() && queue.length === 0">
-            <td colspan="4" class="muted">Nothing waiting for you right now.</td>
+            <td colspan="5" class="muted">Nothing waiting for you right now.</td>
           </tr>
         </tbody>
       </table>

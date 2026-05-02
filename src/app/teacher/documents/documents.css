@@ -37,6 +37,16 @@
 	margin-bottom: 0.75rem;
 }
 
+.small-muted {
+	color: #6b7280;
+	font-size: 0.72rem;
+}
+
+.muted-cell {
+	color: #9ca3af;
+	font-size: 0.85rem;
+}
+
 .table-wrap {
 	overflow: auto;
 	border: 1px solid var(--border);

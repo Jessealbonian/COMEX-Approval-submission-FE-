@@ -5,7 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 import { FileService } from '../../core/services/file.service';
-import { FileDoc } from '../../core/models/file.models';
+import { FileDoc, documentTypeLabel, workflowStageLabel, workflowStatusTone } from '../../core/models/file.models';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,6 +22,10 @@ export class Dashboard implements OnInit {
   readonly loading = signal(false);
   readonly errorMessage = signal('');
   readonly userName = this.auth.user()?.name ?? 'Principal';
+
+  readonly stageLabel = workflowStageLabel;
+  readonly statusTone = workflowStatusTone;
+  readonly docTypeLabel = documentTypeLabel;
 
   pending = 0;
   inReview = 0;
@@ -43,8 +47,8 @@ export class Dashboard implements OnInit {
         ).length;
         this.inReview = files.filter(
           (f) =>
-            f.status === 'reviewed_by_coordinator' ||
-            f.status === 'reviewed_by_master'
+            (f.status === 'reviewed_by_master' && f.current_level === 4) ||
+            f.status === 'exam_principal'
         ).length;
         this.finalized = files.filter((f) => f.status === 'finalized').length;
         this.recent = files.slice(0, 8);
@@ -63,17 +67,6 @@ export class Dashboard implements OnInit {
 
   goToAccounts(): void {
     void this.router.navigateByUrl('/admin/account');
-  }
-
-  statusLabel(status: string): string {
-    switch (status) {
-      case 'uploaded': return 'Awaiting Coordinator';
-      case 'reviewed_by_coordinator': return 'With Master';
-      case 'reviewed_by_master': return 'With Principal';
-      case 'finalized': return 'Finalized';
-      case 'returned': return 'Returned';
-      default: return status;
-    }
   }
 
   private describe(err: unknown): string {

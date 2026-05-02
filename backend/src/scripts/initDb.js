@@ -19,6 +19,20 @@ const ADDITIVE_MIGRATIONS = [
   `ALTER TABLE \`users\`
      ADD COLUMN \`token_version\` INT UNSIGNED NOT NULL DEFAULT 0
      AFTER \`is_active\``,
+  // Document workflow (DLP vs Examination): apply before comment FKs so a
+  // duplicate-constraint error later cannot skip these statements.
+  `ALTER TABLE \`files\`
+     ADD COLUMN \`document_type\` ENUM('dlp','examination') NOT NULL DEFAULT 'dlp' AFTER \`status\``,
+  `ALTER TABLE \`files\`
+     MODIFY COLUMN \`status\` ENUM(
+       'uploaded',
+       'reviewed_by_coordinator',
+       'reviewed_by_master',
+       'finalized',
+       'returned',
+       'exam_principal',
+       'exam_master'
+     ) NOT NULL DEFAULT 'uploaded'`,
   // Comment resolution tracking (Resolve button + forward gating).
   `ALTER TABLE \`comments\`
      ADD COLUMN \`resolved_at\` DATETIME NULL AFTER \`body\``,
@@ -39,6 +53,17 @@ const IGNORABLE_ERROR_CODES = new Set([
   'ER_FK_DUP_NAME',   // foreign key already exists
   'ER_DUP_KEY',
 ]);
+
+function isIgnorableMigrationError(err) {
+  if (!err) return false;
+  if (IGNORABLE_ERROR_CODES.has(err.code)) return true;
+  // MySQL may report duplicate FK / duplicate key as errno 121 (HY000).
+  if (Number(err.errno) === 121) return true;
+  const msg = String(err.message || err.sqlMessage || '');
+  if (/duplicate key on write or update/i.test(msg)) return true;
+  if (/duplicate foreign key constraint name/i.test(msg)) return true;
+  return false;
+}
 
 async function main() {
   const sqlPath = path.resolve(__dirname, '..', '..', 'sql', 'schema.sql');
@@ -62,7 +87,7 @@ async function main() {
         await conn.query(stmt);
         console.log('[db:init] migration applied:', firstLine(stmt));
       } catch (err) {
-        if (IGNORABLE_ERROR_CODES.has(err.code)) {
+        if (isIgnorableMigrationError(err)) {
           console.log('[db:init] migration already applied:', firstLine(stmt));
         } else {
           throw err;

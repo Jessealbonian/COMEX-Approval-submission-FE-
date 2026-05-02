@@ -109,6 +109,15 @@
 }
 
 .meta-field input,
+.meta-field select {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.7rem;
+}
+
 .meta-field textarea {
   background: #fff;
   border: 1px solid var(--border);
@@ -120,7 +129,8 @@
 }
 
 .meta-field input:focus,
-.meta-field textarea:focus {
+.meta-field textarea:focus,
+.meta-field select:focus {
   border-color: var(--primary);
   outline: none;
 }

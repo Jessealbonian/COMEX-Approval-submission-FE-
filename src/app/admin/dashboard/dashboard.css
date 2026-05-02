@@ -210,6 +210,29 @@ thead th {
 	background: #f8fafc;
 }
 
+.doc-type {
+	display: inline-block;
+	padding: 0.25rem 0.5rem;
+	border-radius: 6px;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.doc-type-dlp {
+	background: #eef6f6;
+	border: 1px solid #c5d4d4;
+	color: #2f4f4f;
+}
+
+.doc-type-exam {
+	background: #fef3c7;
+	border: 1px solid #fcd34d;
+	color: #92400e;
+}
+
 .status {
 	display: inline-flex;
 	padding: 0.2rem 0.65rem;

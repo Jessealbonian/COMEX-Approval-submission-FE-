@@ -48,6 +48,7 @@
 					<thead>
 						<tr>
 							<th>ID</th>
+							<th>Type</th>
 							<th>Title</th>
 							<th>Submitted by</th>
 							<th>Submitted on</th>
@@ -64,22 +65,31 @@
 							(keydown.space)="open(file)"
 						>
 							<td>#{{ file.id }}</td>
+							<td>
+								<span
+									class="doc-type"
+									[class.doc-type-dlp]="file.document_type !== 'examination'"
+									[class.doc-type-exam]="file.document_type === 'examination'"
+								>
+									{{ docTypeLabel(file.document_type) }}
+								</span>
+							</td>
 							<td>{{ file.title }}</td>
 							<td>{{ file.uploaded_by.name }}</td>
 							<td>{{ file.created_at | date: 'mediumDate' }}</td>
 							<td>
 								<span
 									class="status"
-									[class.pending]="file.status === 'uploaded' || file.status === 'returned'"
-									[class.revision]="file.status === 'reviewed_by_coordinator' || file.status === 'reviewed_by_master'"
-									[class.approved]="file.status === 'finalized'"
+									[class.pending]="statusTone(file) === 'pending'"
+									[class.revision]="statusTone(file) === 'in-review'"
+									[class.approved]="statusTone(file) === 'done'"
 								>
-									{{ statusLabel(file.status) }}
+									{{ stageLabel(file) }}
 								</span>
 							</td>
 						</tr>
 						<tr *ngIf="!loading() && recent.length === 0">
-							<td colspan="5" class="muted">No submissions yet.</td>
+							<td colspan="6" class="muted">No submissions yet.</td>
 						</tr>
 					</tbody>
 				</table>

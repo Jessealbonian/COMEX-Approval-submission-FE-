@@ -15,7 +15,13 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService } from '../../services/auth.service';
 import { FileService } from '../../services/file.service';
 import { RoleLevel } from '../../models/auth.models';
-import { FileComment, FileDoc } from '../../models/file.models';
+import {
+  FileComment,
+  FileDoc,
+  documentTypeLabel,
+  workflowStageLabel,
+  workflowStatusTone,
+} from '../../models/file.models';
 
 /**
  * Shared "view a file + its comment timeline + (optionally) act on it"
@@ -43,6 +49,10 @@ import { FileComment, FileDoc } from '../../models/file.models';
 })
 export class FileReview implements OnChanges, OnDestroy {
   @Input({ required: true }) fileId!: number | null;
+
+  readonly docTypeLabel = documentTypeLabel;
+  readonly stageLabel = workflowStageLabel;
+  readonly statusTone = workflowStatusTone;
 
   private readonly fileService = inject(FileService);
   private readonly auth = inject(AuthService);
@@ -188,9 +198,15 @@ export class FileReview implements OnChanges, OnDestroy {
       return;
     }
     const body = this.commentBody.trim() || undefined;
+    const success =
+      this.file.document_type === 'examination' &&
+      this.currentRole === 3 &&
+      this.file.status === 'exam_master'
+        ? 'Document completed (finalized).'
+        : 'Forwarded to the next reviewer.';
     this.runAction(
       () => this.fileService.forward(this.file!.id, body).toPromise(),
-      'Forwarded to the next reviewer.'
+      success
     );
   }
 
@@ -276,7 +292,10 @@ export class FileReview implements OnChanges, OnDestroy {
   get isMyTurn(): boolean {
     const role = this.currentRole;
     if (!this.file || !role) return false;
-    if (role === 4) return this.file.status !== 'finalized';
+    if (role === 4) {
+      if (this.file.status === 'finalized') return false;
+      return Number(this.file.current_level) === role;
+    }
     return Number(this.file.current_level) === role;
   }
 
@@ -287,11 +306,18 @@ export class FileReview implements OnChanges, OnDestroy {
 
   get canForward(): boolean {
     const role = this.currentRole;
-    return !!role && (role === 2 || role === 3) && this.isMyTurn;
+    if (!this.file || !role) return false;
+    if (role === 4) return false;
+    return (role === 2 || role === 3) && this.isMyTurn;
   }
 
   get canFinalize(): boolean {
-    return this.currentRole === 4 && this.isMyTurn;
+    if (this.currentRole !== 4 || !this.file) return false;
+    if (!this.isMyTurn) return false;
+    if ((this.file.document_type ?? 'dlp') === 'examination') {
+      return this.file.status === 'exam_principal';
+    }
+    return this.file.status === 'reviewed_by_master';
   }
 
   /**
@@ -335,6 +361,21 @@ export class FileReview implements OnChanges, OnDestroy {
   }
 
   /**
+   * Forward label: legacy Examination rows at Master still complete via forward.
+   */
+  get forwardButtonLabel(): string {
+    if (!this.file) return 'Forward to next level';
+    if (
+      this.file.document_type === 'examination' &&
+      this.currentRole === 3 &&
+      this.file.status === 'exam_master'
+    ) {
+      return 'Approve and complete';
+    }
+    return 'Forward to next level';
+  }
+
+  /**
    * The Resolve button is shown next to a revision if the logged-in
    * user is the reviewer who currently holds the file (Coordinator/
    * Master/Admin) AND the revision is not yet resolved.
@@ -344,17 +385,6 @@ export class FileReview implements OnChanges, OnDestroy {
     const role = this.currentRole;
     if (!role || role === 1) return false;
     return this.isMyTurn;
-  }
-
-  statusLabel(status: string): string {
-    switch (status) {
-      case 'uploaded': return 'Awaiting Coordinator';
-      case 'reviewed_by_coordinator': return 'With Master';
-      case 'reviewed_by_master': return 'With Principal';
-      case 'finalized': return 'Finalized';
-      case 'returned': return 'Returned';
-      default: return status;
-    }
   }
 
   /* -------- internals -------- */

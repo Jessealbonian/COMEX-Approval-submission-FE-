@@ -38,7 +38,7 @@ export class Dashboard implements OnInit {
       next: (res) => {
         this.total = res.files.length;
         this.queue = res.files.filter(
-          (f) => f.status === 'reviewed_by_coordinator'
+          (f) => f.current_level === 3 && f.status !== 'finalized'
         );
         this.awaitingMe = this.queue.length;
         this.loading.set(false);

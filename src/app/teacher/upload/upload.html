@@ -34,6 +34,18 @@
     </div>
 
     <label class="meta-field">
+      <span>Document type</span>
+      <select
+        name="documentType"
+        [(ngModel)]="documentType"
+        [disabled]="submitting()"
+      >
+        <option value="dlp">DLP</option>
+        <option value="examination">Examination</option>
+      </select>
+    </label>
+
+    <label class="meta-field">
       <span>Title</span>
       <input
         type="text"

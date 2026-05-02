@@ -81,6 +81,10 @@
             <dd>{{ f.uploaded_by.name }}</dd>
           </div>
           <div>
+            <dt>Document type</dt>
+            <dd>{{ docTypeLabel(f.document_type) }}</dd>
+          </div>
+          <div>
             <dt>Submitted on</dt>
             <dd>{{ f.created_at | date: 'longDate' }}</dd>
           </div>
@@ -89,11 +93,11 @@
             <dd>
               <span
                 class="status-badge"
-                [class.pending]="f.status === 'uploaded' || f.status === 'returned'"
-                [class.in-review]="f.status === 'reviewed_by_coordinator' || f.status === 'reviewed_by_master'"
-                [class.done]="f.status === 'finalized'"
+                [class.pending]="statusTone(f) === 'pending'"
+                [class.in-review]="statusTone(f) === 'in-review'"
+                [class.done]="statusTone(f) === 'done'"
               >
-                {{ statusLabel(f.status) }}
+                {{ stageLabel(f) }}
               </span>
             </dd>
           </div>
@@ -168,7 +172,7 @@
               [title]="hasAnyUnresolvedRevisions ? 'Resolve all open revisions first' : ''"
               (click)="forward()"
             >
-              Forward to next level
+              {{ forwardButtonLabel }}
             </button>
             <button
               *ngIf="canFinalize"

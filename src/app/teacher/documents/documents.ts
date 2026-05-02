@@ -9,6 +9,8 @@ import {
   FileComment,
   FileDoc,
   FileStatus,
+  DocumentType,
+  documentTypeLabel,
 } from '../../core/models/file.models';
 
 type DocumentStatus = 'Pending' | 'Checked' | 'For Revision';
@@ -16,14 +18,18 @@ type DocumentStatus = 'Pending' | 'Checked' | 'For Revision';
 interface DocRow {
   id: number;
   name: string;
+  documentType: DocumentType;
+  documentTypeLabel: string;
   submittedBy: string;
   submittedOn: Date;
+  step2Header: string;
+  step3Header: string;
   coordChecked: string;
   coordStatus: DocumentStatus;
-  masterChecked: string;
-  masterStatus: DocumentStatus;
-  principalChecked: string;
-  principalStatus: DocumentStatus;
+  step2Checked: string;
+  step2Status: DocumentStatus;
+  step3Checked: string;
+  step3Status: DocumentStatus;
   revisions: string;
   status: FileStatus;
   current_level: number;
@@ -100,6 +106,96 @@ export class Documents implements OnInit {
   }
 
   private toRow(file: FileDoc, comments: FileComment[]): DocRow {
+    const dtype = file.document_type ?? 'dlp';
+
+    const lastForwardName = (level: 2 | 3 | 4): string => {
+      const hit = [...comments].reverse().find(
+        (c) => c.role_level === level && c.action === 'forward'
+      );
+      return hit?.user.name ?? 'N/A';
+    };
+
+    const openRevisionAt = (level: 2 | 3 | 4): boolean =>
+      comments.some(
+        (c) =>
+          c.role_level === level && c.action === 'revision' && !c.resolved_at
+      );
+
+    const revisions =
+      comments
+        .filter((c) => c.action === 'revision')
+        .map((c) => `${c.role}: ${c.body}`)
+        .join(' | ') || (file.status === 'finalized' ? 'Approved' : 'Awaiting review');
+
+    if (dtype === 'examination') {
+      const isLegacyAtMaster = file.status === 'exam_master';
+
+      const principalActor = [...comments].reverse().find(
+        (c) =>
+          c.role_level === 4 &&
+          (c.action === 'finalize' || c.action === 'forward')
+      );
+
+      const coordStatus: DocumentStatus =
+        file.status === 'uploaded' && file.current_level === 2
+          ? openRevisionAt(2)
+            ? 'For Revision'
+            : 'Pending'
+          : 'Checked';
+
+      const principalStatus: DocumentStatus =
+        file.status === 'finalized' || isLegacyAtMaster
+          ? 'Checked'
+          : file.status === 'exam_principal' && file.current_level === 4
+            ? openRevisionAt(4)
+              ? 'For Revision'
+              : 'Pending'
+            : 'Pending';
+
+      let step3Header = '—';
+      let step3Checked = '—';
+      let step3Status: DocumentStatus = 'Pending';
+
+      if (isLegacyAtMaster) {
+        step3Header = 'Master';
+        step3Status =
+          file.status === 'finalized'
+            ? 'Checked'
+            : file.current_level === 3
+              ? openRevisionAt(3)
+                ? 'For Revision'
+                : 'Pending'
+              : 'Pending';
+        step3Checked =
+          step3Status === 'Checked' ? lastForwardName(3) : 'N/A';
+      }
+
+      return {
+        id: file.id,
+        name: file.original_name,
+        documentType: dtype,
+        documentTypeLabel: documentTypeLabel(dtype),
+        submittedBy: file.uploaded_by.name,
+        submittedOn: new Date(file.created_at),
+        step2Header: 'Principal',
+        step3Header,
+        coordChecked: coordStatus === 'Checked' ? lastForwardName(2) : 'N/A',
+        coordStatus,
+        step2Checked:
+          principalStatus === 'Checked'
+            ? principalActor?.user.name ?? 'N/A'
+            : 'N/A',
+        step2Status: principalStatus,
+        step3Checked,
+        step3Status,
+        revisions,
+        status: file.status,
+        current_level: file.current_level,
+      };
+    }
+
+    const step2Header = 'Master';
+    const step3Header = 'Principal';
     const stage = (level: 2 | 3 | 4) => {
       const acted = comments.find((c) => c.role_level === level);
       const isCheckpoint = (a: CommentAction) =>
@@ -133,23 +229,21 @@ export class Documents implements OnInit {
       principal.status = 'Checked';
     }
 
-    const revisions =
-      comments
-        .filter((c) => c.action === 'revision')
-        .map((c) => `${c.role}: ${c.body}`)
-        .join(' | ') || (file.status === 'finalized' ? 'Approved' : 'Awaiting review');
-
     return {
       id: file.id,
       name: file.original_name,
+      documentType: dtype,
+      documentTypeLabel: documentTypeLabel(dtype),
       submittedBy: file.uploaded_by.name,
       submittedOn: new Date(file.created_at),
+      step2Header,
+      step3Header,
       coordChecked: coord.reviewer,
       coordStatus: coord.status,
-      masterChecked: master.reviewer,
-      masterStatus: master.status,
-      principalChecked: principal.reviewer,
-      principalStatus: principal.status,
+      step2Checked: master.reviewer,
+      step2Status: master.status,
+      step3Checked: principal.reviewer,
+      step3Status: principal.status,
       revisions,
       status: file.status,
       current_level: file.current_level,

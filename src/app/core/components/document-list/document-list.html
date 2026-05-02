@@ -11,6 +11,7 @@
           <thead>
             <tr>
               <th>ID</th>
+              <th>Type</th>
               <th>Title</th>
               <th>File</th>
               <th>Submitted by</th>
@@ -28,6 +29,15 @@
               (keydown.space)="open(row)"
             >
               <td class="mono">#{{ row.id }}</td>
+              <td>
+                <span
+                  class="doc-type"
+                  [class.doc-type-dlp]="row.documentType === 'dlp'"
+                  [class.doc-type-exam]="row.documentType === 'examination'"
+                >
+                  {{ row.typeLabel }}
+                </span>
+              </td>
               <td>{{ row.title }}</td>
               <td>{{ row.name }}</td>
               <td>{{ row.submittedBy }}</td>
@@ -35,16 +45,16 @@
               <td>
                 <span
                   class="status"
-                  [class.pending]="row.status === 'uploaded' || row.status === 'returned'"
-                  [class.in-review]="row.status === 'reviewed_by_coordinator' || row.status === 'reviewed_by_master'"
-                  [class.done]="row.status === 'finalized'"
+                  [class.pending]="row.statusTone === 'pending'"
+                  [class.in-review]="row.statusTone === 'in-review'"
+                  [class.done]="row.statusTone === 'done'"
                 >
                   {{ row.statusLabel }}
                 </span>
               </td>
             </tr>
             <tr *ngIf="rows.length === 0">
-              <td colspan="6" class="muted-row">{{ emptyMessage }}</td>
+              <td colspan="7" class="muted-row">{{ emptyMessage }}</td>
             </tr>
           </tbody>
         </table>

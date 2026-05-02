@@ -15,10 +15,16 @@ export class FileService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/files`;
 
-  upload(file: File, title: string, description?: string): Observable<{ file: FileDoc }> {
+  upload(
+    file: File,
+    title: string,
+    description?: string,
+    documentType: 'dlp' | 'examination' = 'dlp'
+  ): Observable<{ file: FileDoc }> {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('title', title);
+    fd.append('document_type', documentType);
     if (description) fd.append('description', description);
     return this.http.post<{ file: FileDoc }>(this.base, fd);
   }

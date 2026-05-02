@@ -57,11 +57,11 @@
             <td>
               <span
                 class="status"
-                [class.pending]="file.status === 'uploaded' || file.status === 'returned'"
-                [class.in-review]="file.status === 'reviewed_by_coordinator' || file.status === 'reviewed_by_master'"
-                [class.done]="file.status === 'finalized'"
+                [class.pending]="statusTone(file) === 'pending'"
+                [class.in-review]="statusTone(file) === 'in-review'"
+                [class.done]="statusTone(file) === 'done'"
               >
-                {{ statusLabel(file.status) }}
+                {{ stageLabel(file) }}
               </span>
             </td>
           </tr>

@@ -8,10 +8,16 @@
 --
 -- File status values:
 --   'uploaded'                 - just submitted by Teacher (awaiting Coordinator)
---   'reviewed_by_coordinator'  - Coordinator forwarded to Master
---   'reviewed_by_master'       - Master forwarded to Principal
---   'finalized'                - Principal finalized the document
+--   'reviewed_by_coordinator'  - DLP: Coordinator forwarded to Master
+--   'reviewed_by_master'       - DLP: Master forwarded to Principal
+--   'exam_principal'           - Examination: Coordinator forwarded to Principal (Principal then finalizes)
+--   'exam_master'              - Legacy: old flow sent some exams to Master before finalizing
+--   'finalized'                - DLP: Principal finalized; Examination: Principal finalized (or legacy Master forward)
 --   'returned'                 - sent back for revision (optional)
+--
+-- document_type:
+--   'dlp'          - Teacher → Coordinator → Master → Principal (finalize)
+--   'examination'  - Teacher → Coordinator → Principal (finalize)
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS `comex_approval`
@@ -60,8 +66,11 @@ CREATE TABLE IF NOT EXISTS `files` (
                      'reviewed_by_coordinator',
                      'reviewed_by_master',
                      'finalized',
-                     'returned'
+                     'returned',
+                     'exam_principal',
+                     'exam_master'
                    ) NOT NULL DEFAULT 'uploaded',
+  `document_type`  ENUM('dlp', 'examination') NOT NULL DEFAULT 'dlp',
   `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                     ON UPDATE CURRENT_TIMESTAMP,

@@ -65,7 +65,8 @@ export class Sidenav implements OnInit, OnDestroy {
   currentSection: AppSection = 'admin';
   shouldRun = false;
 
-  opened = true;
+  /** Start collapsed; user opens via header menu (all breakpoints). */
+  opened = false;
   drawerMode: MatDrawerMode = 'side';
   fixedInViewport = false;
   fixedTopGap = 0;
@@ -118,7 +119,6 @@ export class Sidenav implements OnInit, OnDestroy {
         }
 
         this.drawerMode = 'side';
-        this.opened = this.shouldRun;
         this.fixedTopGap = 64;
       }),
     );
@@ -187,10 +187,6 @@ export class Sidenav implements OnInit, OnDestroy {
     }
 
     this.shouldRun = (isAdminSection || isTeacherSection || isCoardSection || isMasterSection) && !isLoginPage;
-
-    if (!this.isMobile) {
-      this.opened = this.shouldRun;
-    }
   }
 }
 

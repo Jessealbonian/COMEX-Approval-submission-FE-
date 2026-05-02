@@ -3,7 +3,7 @@
 const { pool } = require('../config/db');
 const HttpError = require('../utils/httpError');
 const { ROLES, roleName } = require('../utils/roles');
-const { STATUS, nextWorkflowState } = require('../utils/status');
+const { STATUS, nextWorkflowState, DOCUMENT_TYPE } = require('../utils/status');
 const { requireString, optionalString, requireId } = require('../utils/validate');
 const logger = require('../utils/logger');
 
@@ -179,7 +179,7 @@ async function forwardFile(req, res, next) {
       await conn.beginTransaction();
 
       const [rows] = await conn.query(
-        `SELECT id, uploaded_by, current_level, status
+        `SELECT id, uploaded_by, current_level, status, document_type
            FROM files WHERE id = ? FOR UPDATE`,
         [id]
       );
@@ -189,7 +189,10 @@ async function forwardFile(req, res, next) {
         throw new HttpError(403, 'You are not allowed to forward this file');
       }
       if (Number(req.user.role_level) === ROLES.ADMIN) {
-        throw new HttpError(400, 'Admin should finalize, not forward');
+        throw new HttpError(
+          400,
+          'The Principal uses Finalize, not Forward. Coordinators and Masters use Forward when the file is at their stage.'
+        );
       }
       if (Number(file.current_level) !== Number(req.user.role_level)) {
         throw new HttpError(400, 'File is not at your level');
@@ -203,7 +206,11 @@ async function forwardFile(req, res, next) {
         );
       }
 
-      const next = nextWorkflowState(req.user.role_level);
+      const next = nextWorkflowState(
+        req.user.role_level,
+        file.document_type || DOCUMENT_TYPE.DLP,
+        file.status
+      );
       if (!next) throw new HttpError(400, 'No next state from this role');
 
       await conn.query(
@@ -258,7 +265,7 @@ async function finalizeFile(req, res, next) {
       await conn.beginTransaction();
 
       const [rows] = await conn.query(
-        `SELECT id, current_level, status FROM files WHERE id = ? FOR UPDATE`,
+        `SELECT id, current_level, status, document_type FROM files WHERE id = ? FOR UPDATE`,
         [id]
       );
       const file = rows[0];
@@ -267,11 +274,34 @@ async function finalizeFile(req, res, next) {
         throw new HttpError(409, 'File is already finalized');
       }
 
+      const dtype = String(file.document_type || DOCUMENT_TYPE.DLP);
       const pending = await unresolvedRevisionCount(conn, file.id);
       if (pending > 0) {
         throw new HttpError(
           409,
           'Cannot finalize: there are unresolved revisions on this document. Mark them all resolved first.'
+        );
+      }
+
+      if (dtype === DOCUMENT_TYPE.EXAMINATION) {
+        if (file.status !== STATUS.EXAM_PRINCIPAL) {
+          throw new HttpError(
+            400,
+            'Examination documents can be finalized only while they are with the Principal (after the Coordinator forwards them).'
+          );
+        }
+      } else {
+        if (file.status !== STATUS.REVIEWED_BY_MASTER) {
+          throw new HttpError(
+            400,
+            'This document is not awaiting final Principal approval (DLP flow).'
+          );
+        }
+      }
+      if (Number(file.current_level) !== ROLES.ADMIN) {
+        throw new HttpError(
+          400,
+          'This document is not currently with the Principal for final approval.'
         );
       }
 

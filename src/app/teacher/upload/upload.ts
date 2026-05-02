@@ -36,6 +36,8 @@ export class Upload implements OnDestroy {
 
   title = '';
   description = '';
+  /** DLP keeps the legacy chain; Examination uses Coordinator → Principal → Master. */
+  documentType: 'dlp' | 'examination' = 'dlp';
 
   documentName = '';
   submittedBy = this.auth.user()?.name ?? 'You';
@@ -104,16 +106,26 @@ export class Upload implements OnDestroy {
     this.successMessage.set('');
 
     this.fileService
-      .upload(this.selectedFile, this.title.trim(), this.description.trim() || undefined)
+      .upload(
+        this.selectedFile,
+        this.title.trim(),
+        this.description.trim() || undefined,
+        this.documentType
+      )
       .subscribe({
         next: (res) => {
           this.submitting.set(false);
           this.documentName = res.file.original_name;
           this.submittedAt = new Date(res.file.created_at);
           this.setPdfPreview(this.selectedFile!);
-          this.successMessage.set('Upload submitted. Routed to the Coordinator.');
+          const msg =
+            res.file.document_type === 'examination'
+              ? 'Upload submitted. Examination document routed to the Coordinator.'
+              : 'Upload submitted. DLP routed to the Coordinator.';
+          this.successMessage.set(msg);
           this.title = '';
           this.description = '';
+          this.documentType = 'dlp';
           this.cancelSelection();
         },
         error: (err: unknown) => {

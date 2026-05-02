@@ -4,16 +4,26 @@ import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { FileService } from '../../services/file.service';
-import { FileDoc, FileStatus } from '../../models/file.models';
+import {
+  DocumentType,
+  FileDoc,
+  FileStatus,
+  documentTypeLabel,
+  workflowStageLabel,
+  workflowStatusTone,
+} from '../../models/file.models';
 
 interface ListRow {
   id: number;
   name: string;
   title: string;
+  documentType: DocumentType;
+  typeLabel: string;
   submittedBy: string;
   submittedOn: Date;
   status: FileStatus;
   statusLabel: string;
+  statusTone: 'pending' | 'in-review' | 'done';
   currentLevel: number;
 }
 
@@ -81,26 +91,20 @@ export class DocumentList implements OnInit {
   }
 
   private toRow(f: FileDoc): ListRow {
+    const documentType = f.document_type ?? 'dlp';
     return {
       id: f.id,
       name: f.original_name,
       title: f.title,
+      documentType,
+      typeLabel: documentTypeLabel(documentType),
       submittedBy: f.uploaded_by.name,
       submittedOn: new Date(f.created_at),
       status: f.status,
-      statusLabel: this.label(f.status),
+      statusLabel: workflowStageLabel(f),
+      statusTone: workflowStatusTone(f),
       currentLevel: f.current_level,
     };
-  }
-
-  private label(status: FileStatus): string {
-    switch (status) {
-      case 'uploaded': return 'Awaiting Coordinator';
-      case 'reviewed_by_coordinator': return 'With Master';
-      case 'reviewed_by_master': return 'With Principal';
-      case 'finalized': return 'Finalized';
-      case 'returned': return 'Returned';
-    }
   }
 
   private describe(err: unknown): string {

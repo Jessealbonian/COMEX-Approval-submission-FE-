@@ -5,7 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 import { FileService } from '../../core/services/file.service';
-import { FileDoc } from '../../core/models/file.models';
+import { FileDoc, documentTypeLabel } from '../../core/models/file.models';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,6 +22,8 @@ export class Dashboard implements OnInit {
   readonly loading = signal(false);
   readonly errorMessage = signal('');
   readonly userName = this.auth.user()?.name ?? 'Coordinator';
+
+  readonly docTypeLabel = documentTypeLabel;
 
   awaitingMe = 0;
   total = 0;

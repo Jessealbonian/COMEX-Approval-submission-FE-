@@ -5,7 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 import { FileService } from '../../core/services/file.service';
-import { FileDoc } from '../../core/models/file.models';
+import { FileDoc, workflowStageLabel, workflowStatusTone } from '../../core/models/file.models';
 
 @Component({
   selector: 'app-home',
@@ -22,6 +22,9 @@ export class Home implements OnInit {
   readonly loading = signal(false);
   readonly errorMessage = signal('');
   readonly userName = this.auth.user()?.name ?? 'Teacher';
+
+  readonly stageLabel = workflowStageLabel;
+  readonly statusTone = workflowStatusTone;
 
   total = 0;
   pending = 0;
@@ -57,17 +60,6 @@ export class Home implements OnInit {
 
   goToUpload(): void {
     void this.router.navigateByUrl('/teacher/upload');
-  }
-
-  statusLabel(status: string): string {
-    switch (status) {
-      case 'uploaded': return 'Awaiting Coordinator';
-      case 'reviewed_by_coordinator': return 'With Master';
-      case 'reviewed_by_master': return 'With Principal';
-      case 'finalized': return 'Finalized';
-      case 'returned': return 'Returned';
-      default: return status;
-    }
   }
 
   private describe(err: unknown): string {

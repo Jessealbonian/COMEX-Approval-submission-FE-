@@ -6,7 +6,7 @@ const { pool } = require('../config/db');
 const env = require('../config/env');
 const HttpError = require('../utils/httpError');
 const { ROLES, roleName } = require('../utils/roles');
-const { STATUS } = require('../utils/status');
+const { STATUS, DOCUMENT_TYPE } = require('../utils/status');
 const {
   requireString,
   optionalString,
@@ -31,7 +31,11 @@ function visibilityClause(user) {
     case ROLES.COORDINATOR:
       return { sql: 'f.current_level >= ?', params: [ROLES.COORDINATOR] };
     case ROLES.MASTER:
-      return { sql: 'f.current_level >= ?', params: [ROLES.MASTER] };
+      return {
+        sql:
+          '(f.current_level >= ? AND NOT (f.document_type = ? AND f.status = ?))',
+        params: [ROLES.MASTER, DOCUMENT_TYPE.EXAMINATION, STATUS.EXAM_PRINCIPAL],
+      };
     case ROLES.ADMIN:
       return { sql: '1=1', params: [] };
     default:
@@ -50,6 +54,7 @@ function shapeFile(row) {
     current_level: row.current_level,
     current_role: roleName(row.current_level),
     status: row.status,
+    document_type: row.document_type || DOCUMENT_TYPE.DLP,
     uploaded_by: {
       id: row.uploaded_by,
       name: row.uploader_name,
@@ -62,7 +67,7 @@ function shapeFile(row) {
 
 const FILE_SELECT = `
   SELECT f.id, f.title, f.description, f.original_name, f.stored_name,
-         f.mime_type, f.size_bytes, f.current_level, f.status,
+         f.mime_type, f.size_bytes, f.current_level, f.status, f.document_type,
          f.uploaded_by, f.created_at, f.updated_at,
          u.name  AS uploader_name,
          u.email AS uploader_email
@@ -72,7 +77,8 @@ const FILE_SELECT = `
 
 /**
  * POST /api/files (Teacher only) - multipart/form-data
- * fields: title (string, required), description (string, optional), file (PDF)
+ * fields: title (string, required), description (string, optional),
+ * document_type (string, optional: `dlp` | `examination`, default `dlp`), file (PDF)
  */
 async function uploadFile(req, res, next) {
   try {
@@ -90,6 +96,19 @@ async function uploadFile(req, res, next) {
       throw e;
     }
 
+    let documentType = DOCUMENT_TYPE.DLP;
+    if (req.body && req.body.document_type != null) {
+      const raw = String(req.body.document_type).trim().toLowerCase();
+      if (raw === 'examination' || raw === 'exam') {
+        documentType = DOCUMENT_TYPE.EXAMINATION;
+      } else if (raw === 'dlp') {
+        documentType = DOCUMENT_TYPE.DLP;
+      } else {
+        fs.unlink(req.file.path, () => {});
+        throw new HttpError(400, 'document_type must be dlp or examination');
+      }
+    }
+
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -97,8 +116,8 @@ async function uploadFile(req, res, next) {
       const [result] = await conn.query(
         `INSERT INTO files
           (uploaded_by, title, description, original_name, stored_name,
-           mime_type, size_bytes, current_level, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           mime_type, size_bytes, current_level, status, document_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           req.user.id,
           title,
@@ -109,6 +128,7 @@ async function uploadFile(req, res, next) {
           req.file.size,
           ROLES.COORDINATOR,
           STATUS.UPLOADED,
+          documentType,
         ]
       );
 
@@ -215,8 +235,16 @@ async function loadVisibleFile(user, fileId) {
   if (level === ROLES.COORDINATOR && row.current_level < ROLES.COORDINATOR) {
     throw new HttpError(403, 'Forbidden');
   }
-  if (level === ROLES.MASTER && row.current_level < ROLES.MASTER) {
-    throw new HttpError(403, 'Forbidden');
+  if (level === ROLES.MASTER) {
+    if (row.current_level < ROLES.MASTER) {
+      throw new HttpError(403, 'Forbidden');
+    }
+    if (
+      row.document_type === DOCUMENT_TYPE.EXAMINATION &&
+      row.status === STATUS.EXAM_PRINCIPAL
+    ) {
+      throw new HttpError(403, 'Forbidden');
+    }
   }
   return row;
 }
