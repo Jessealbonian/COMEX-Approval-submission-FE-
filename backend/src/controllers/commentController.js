@@ -3,7 +3,12 @@
 const { pool } = require('../config/db');
 const HttpError = require('../utils/httpError');
 const { ROLES, roleName } = require('../utils/roles');
-const { STATUS, nextWorkflowState, DOCUMENT_TYPE } = require('../utils/status');
+const {
+  STATUS,
+  nextWorkflowState,
+  DOCUMENT_TYPE,
+} = require('../utils/status');
+const { stopsFromRow } = require('../utils/customStops');
 const { requireString, optionalString, requireId } = require('../utils/validate');
 const logger = require('../utils/logger');
 
@@ -39,20 +44,45 @@ async function loadFileForAction(user, fileId) {
 }
 
 /**
- * Counts revision comments on a file that are still unresolved,
- * regardless of which reviewer raised them. Any open revision blocks
- * the workflow: Coordinator/Master can't forward, Principal can't
- * finalize, until every revision is marked resolved (or the teacher
- * re-uploads, which auto-resolves them).
+ * For marking a revision resolved: the reviewer must currently hold the file
+ * (current_level matches their role). Principal = level 4.
  */
-async function unresolvedRevisionCount(conn, fileId) {
+async function loadFileForResolve(user, fileId) {
+  const [rows] = await pool.query(
+    `SELECT id, uploaded_by, current_level, status
+       FROM files WHERE id = ? LIMIT 1`,
+    [fileId]
+  );
+  const file = rows[0];
+  if (!file) throw new HttpError(404, 'File not found');
+  const level = Number(user.role_level);
+  const cur = Number(file.current_level);
+  if (level === ROLES.TEACHER) {
+    throw new HttpError(403, 'Teachers resolve revisions by uploading a corrected PDF');
+  }
+  if (level === ROLES.ADMIN) {
+    if (cur !== ROLES.ADMIN) {
+      throw new HttpError(403, 'You are not allowed to resolve revisions for this file right now');
+    }
+  } else if (cur !== level) {
+    throw new HttpError(403, 'You are not allowed to resolve revisions for this file right now');
+  }
+  return file;
+}
+
+/**
+ * Counts revision comments still unresolved *for the given user's own*
+ * requests only. Only the reviewer who created a revision can resolve it.
+ */
+async function unresolvedRevisionCountForUser(conn, fileId, userId) {
   const [rows] = await conn.query(
     `SELECT COUNT(*) AS n
        FROM comments
       WHERE file_id = ?
         AND action = 'revision'
-        AND resolved_at IS NULL`,
-    [fileId]
+        AND resolved_at IS NULL
+        AND user_id = ?`,
+    [fileId, userId]
   );
   return Number(rows[0].n) || 0;
 }
@@ -104,20 +134,18 @@ async function addComment(req, res, next) {
 /**
  * POST /api/files/:id/comments/:commentId/resolve
  *
- * Marks a `revision` comment as resolved. Only the reviewer who is
- * currently allowed to act on the file (or the Admin) can resolve.
- * Comments other than 'revision' cannot be resolved (it would be
- * meaningless).
+ * Marks a `revision` comment as resolved. Only the user who created
+ * the revision may resolve it.
  */
 async function resolveComment(req, res, next) {
   try {
     const fileId = requireId(req.params.id);
     const commentId = requireId(req.params.commentId);
 
-    const file = await loadFileForAction(req.user, fileId);
+    const file = await loadFileForResolve(req.user, fileId);
 
     const [rows] = await pool.query(
-      `SELECT id, file_id, action, role_level, resolved_at
+      `SELECT id, file_id, action, user_id, resolved_at
          FROM comments
         WHERE id = ? AND file_id = ?
         LIMIT 1`,
@@ -130,6 +158,13 @@ async function resolveComment(req, res, next) {
     }
     if (comment.resolved_at) {
       throw new HttpError(409, 'Comment is already resolved');
+    }
+
+    if (Number(comment.user_id) !== Number(req.user.id)) {
+      throw new HttpError(
+        403,
+        'Only the reviewer who requested this revision can mark it resolved'
+      );
     }
 
     await pool.query(
@@ -164,10 +199,9 @@ async function resolveComment(req, res, next) {
  * POST /api/files/:id/forward
  * body: { body?: string }
  *
- * Coordinator -> Master -> Admin chain. Wrapped in a transaction with
- * SELECT ... FOR UPDATE so concurrent forwards cannot double-advance
- * the same file. Forwarding is BLOCKED while there are unresolved
- * revisions at the reviewer's level.
+ * Coordinator / Master forward. Principal (Admin) does not forward examinations
+ * — they finalize. Forwarding is blocked while the actor has their **own**
+ * unresolved revision requests.
  */
 async function forwardFile(req, res, next) {
   try {
@@ -179,7 +213,7 @@ async function forwardFile(req, res, next) {
       await conn.beginTransaction();
 
       const [rows] = await conn.query(
-        `SELECT id, uploaded_by, current_level, status, document_type
+        `SELECT id, uploaded_by, current_level, status, document_type, custom_route, custom_stops
            FROM files WHERE id = ? FOR UPDATE`,
         [id]
       );
@@ -188,30 +222,62 @@ async function forwardFile(req, res, next) {
       if (!canActOnFile(req.user, file)) {
         throw new HttpError(403, 'You are not allowed to forward this file');
       }
-      if (Number(req.user.role_level) === ROLES.ADMIN) {
+
+      const actorRole = Number(req.user.role_level);
+      const dtype = file.document_type || DOCUMENT_TYPE.DLP;
+
+      if (actorRole === ROLES.ADMIN) {
         throw new HttpError(
           400,
-          'The Principal uses Finalize, not Forward. Coordinators and Masters use Forward when the file is at their stage.'
+          dtype === DOCUMENT_TYPE.DLP
+            ? 'Use Finalize to approve this DLP document when it is ready.'
+            : dtype === DOCUMENT_TYPE.EXAMINATION
+              ? 'Finalize this examination when it is ready; it is not forwarded from the Principal.'
+              : 'Use the workflow action appropriate for this document type.'
         );
-      }
-      if (Number(file.current_level) !== Number(req.user.role_level)) {
+      } else if (Number(file.current_level) !== actorRole) {
         throw new HttpError(400, 'File is not at your level');
       }
 
-      const pending = await unresolvedRevisionCount(conn, file.id);
+      const pending = await unresolvedRevisionCountForUser(
+        conn,
+        file.id,
+        req.user.id
+      );
       if (pending > 0) {
         throw new HttpError(
           409,
-          'Cannot forward: there are unresolved revisions on this document. Mark them all resolved first.'
+          'Cannot forward: resolve your own open revision requests on this document first.'
         );
       }
 
       const next = nextWorkflowState(
         req.user.role_level,
-        file.document_type || DOCUMENT_TYPE.DLP,
-        file.status
+        dtype,
+        file.status,
+        dtype === DOCUMENT_TYPE.CUSTOM
+          ? {
+              customStops: stopsFromRow(file),
+              customRoute: file.custom_route,
+            }
+          : undefined
       );
-      if (!next) throw new HttpError(400, 'No next state from this role');
+      if (!next) {
+        if (dtype === DOCUMENT_TYPE.CUSTOM) {
+          const stops = stopsFromRow(file);
+          const lastIdx = stops.indexOf(Number(actorRole));
+          if (
+            lastIdx === stops.length - 1 &&
+            Number(actorRole) === ROLES.ADMIN
+          ) {
+            throw new HttpError(
+              400,
+              'Use Finalize to approve this document when it is ready.'
+            );
+          }
+        }
+        throw new HttpError(400, 'No next state from this role');
+      }
 
       await conn.query(
         `UPDATE files SET current_level = ?, status = ? WHERE id = ?`,
@@ -265,7 +331,7 @@ async function finalizeFile(req, res, next) {
       await conn.beginTransaction();
 
       const [rows] = await conn.query(
-        `SELECT id, current_level, status, document_type FROM files WHERE id = ? FOR UPDATE`,
+        `SELECT id, current_level, status, document_type, custom_route, custom_stops FROM files WHERE id = ? FOR UPDATE`,
         [id]
       );
       const file = rows[0];
@@ -275,28 +341,51 @@ async function finalizeFile(req, res, next) {
       }
 
       const dtype = String(file.document_type || DOCUMENT_TYPE.DLP);
-      const pending = await unresolvedRevisionCount(conn, file.id);
+      const pending = await unresolvedRevisionCountForUser(
+        conn,
+        file.id,
+        req.user.id
+      );
       if (pending > 0) {
         throw new HttpError(
           409,
-          'Cannot finalize: there are unresolved revisions on this document. Mark them all resolved first.'
+          'Cannot finalize: resolve your own open revision requests on this document first.'
         );
       }
 
       if (dtype === DOCUMENT_TYPE.EXAMINATION) {
-        if (file.status !== STATUS.EXAM_PRINCIPAL) {
+        if (
+          file.status !== STATUS.EXAM_PRINCIPAL ||
+          Number(file.current_level) !== ROLES.ADMIN
+        ) {
           throw new HttpError(
             400,
-            'Examination documents can be finalized only while they are with the Principal (after the Coordinator forwards them).'
+            'Examination papers are finalized here only after Coordinator and Master reviews (document must be exam_principal at your desk).'
           );
         }
-      } else {
-        if (file.status !== STATUS.REVIEWED_BY_MASTER) {
+      } else if (dtype === DOCUMENT_TYPE.CUSTOM) {
+        const stops = stopsFromRow(file);
+        const last = stops[stops.length - 1];
+        if (last !== ROLES.ADMIN) {
           throw new HttpError(
             400,
-            'This document is not awaiting final Principal approval (DLP flow).'
+            'This custom workflow is completed by forwarding at the last reviewer, not by Finalize here.'
           );
         }
+        if (
+          file.status !== STATUS.UPLOADED ||
+          Number(file.current_level) !== ROLES.ADMIN
+        ) {
+          throw new HttpError(
+            400,
+            'This custom document is not awaiting Principal-only final approval.'
+          );
+        }
+      } else if (file.status !== STATUS.REVIEWED_BY_MASTER) {
+        throw new HttpError(
+          400,
+          'This document is not awaiting final Principal approval (DLP flow).'
+        );
       }
       if (Number(file.current_level) !== ROLES.ADMIN) {
         throw new HttpError(

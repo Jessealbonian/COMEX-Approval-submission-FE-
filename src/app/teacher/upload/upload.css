@@ -108,6 +108,70 @@
   font-weight: 600;
 }
 
+.field-hint {
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.choice-btn {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--primary-ink);
+  cursor: pointer;
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 6.5rem;
+  padding: 0.55rem 0.65rem;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.choice-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.choice-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.choice-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.choice-btn-active {
+  background: rgba(53, 79, 82, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.choice-row-tight {
+  gap: 0.35rem;
+}
+
+.choice-btn-tight {
+  flex: 0 1 auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-width: 0;
+  padding: 0.38rem 0.55rem;
+}
+
 .meta-field input,
 .meta-field select {
   background: #fff;
@@ -129,7 +193,11 @@
 }
 
 .meta-field input:focus,
-.meta-field textarea:focus,
+.meta-field textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
 .meta-field select:focus {
   border-color: var(--primary);
   outline: none;

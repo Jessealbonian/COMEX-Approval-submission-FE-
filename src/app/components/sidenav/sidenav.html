@@ -21,6 +21,7 @@
             *ngFor="let item of navLinks"
             [routerLink]="item.route"
             routerLinkActive="active-link"
+            [routerLinkActiveOptions]="item.route === '/profile' ? { exact: true } : { exact: false }"
             class="nav-item"
           >
             <mat-icon>{{ item.icon }}</mat-icon>

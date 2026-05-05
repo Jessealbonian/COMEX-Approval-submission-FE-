@@ -72,6 +72,22 @@
             <dt>Title</dt>
             <dd>{{ f.title }}</dd>
           </div>
+          <div *ngIf="f.description">
+            <dt>Description</dt>
+            <dd>{{ f.description }}</dd>
+          </div>
+          <div *ngIf="f.document_type === 'custom' && f.custom_type_label">
+            <dt>Custom type</dt>
+            <dd>{{ f.custom_type_label }}</dd>
+          </div>
+          <div *ngIf="f.document_type === 'custom'">
+            <dt>Reviewer path</dt>
+            <dd>{{ customStopsLabel(f) }}</dd>
+          </div>
+          <div *ngIf="f.more_details">
+            <dt>Additional notes</dt>
+            <dd style="white-space: pre-wrap">{{ f.more_details }}</dd>
+          </div>
           <div>
             <dt>File</dt>
             <dd class="ellipsis">{{ f.original_name }}</dd>
@@ -82,7 +98,7 @@
           </div>
           <div>
             <dt>Document type</dt>
-            <dd>{{ docTypeLabel(f.document_type) }}</dd>
+            <dd>{{ docTypeLabel(f.document_type, f.custom_type_label) }}</dd>
           </div>
           <div>
             <dt>Submitted on</dt>
@@ -105,20 +121,21 @@
 
         <div
           class="banner warning"
-          *ngIf="(canForward || canFinalize) && hasAnyUnresolvedRevisions"
+          *ngIf="(canForward || canFinalize) && hasUnresolvedRevisionsForActor"
         >
           {{ canFinalize ? 'Finalizing' : 'Forwarding' }} is blocked:
-          {{ unresolvedRevisions.length }} unresolved revision<span
-            *ngIf="unresolvedRevisions.length !== 1"
+          {{ unresolvedRevisionsForActor.length }} unresolved revision<span
+            *ngIf="unresolvedRevisionsForActor.length !== 1"
             >s</span
           >
-          on this document. All revisions must be marked resolved first.
+          you created on this document. Resolve them first.
         </div>
 
         <div class="banner warning" *ngIf="canReupload">
           A reviewer has marked this document for revision. Upload a corrected
-          PDF to replace the current file - the transaction number stays the
-          same and the workflow restarts at the Coordinator.
+          PDF to replace the current file. The transaction number stays the
+          same; open revision requests will be cleared and the file stays at
+          the current review stage.
         </div>
 
         <div class="action-row" *ngIf="canReupload">
@@ -168,8 +185,8 @@
               *ngIf="canForward"
               type="button"
               class="btn btn-primary"
-              [disabled]="acting() || hasAnyUnresolvedRevisions"
-              [title]="hasAnyUnresolvedRevisions ? 'Resolve all open revisions first' : ''"
+              [disabled]="acting() || hasUnresolvedRevisionsForActor"
+              [title]="hasUnresolvedRevisionsForActor ? 'Resolve your open revision requests first' : ''"
               (click)="forward()"
             >
               {{ forwardButtonLabel }}
@@ -178,8 +195,8 @@
               *ngIf="canFinalize"
               type="button"
               class="btn btn-primary"
-              [disabled]="acting() || hasAnyUnresolvedRevisions"
-              [title]="hasAnyUnresolvedRevisions ? 'Resolve all open revisions first' : ''"
+              [disabled]="acting() || hasUnresolvedRevisionsForActor"
+              [title]="hasUnresolvedRevisionsForActor ? 'Resolve your open revision requests first' : ''"
               (click)="finalize()"
             >
               Finalize

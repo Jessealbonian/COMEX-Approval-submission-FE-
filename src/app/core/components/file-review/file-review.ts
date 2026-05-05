@@ -19,6 +19,7 @@ import {
   FileComment,
   FileDoc,
   documentTypeLabel,
+  customStopsResolved,
   workflowStageLabel,
   workflowStatusTone,
 } from '../../models/file.models';
@@ -51,6 +52,17 @@ export class FileReview implements OnChanges, OnDestroy {
   @Input({ required: true }) fileId!: number | null;
 
   readonly docTypeLabel = documentTypeLabel;
+
+  /** Human-readable chain for custom workflows. */
+  customStopsLabel(f: FileDoc): string {
+    const s = customStopsResolved(f);
+    if (s.length === 0) return '—';
+    return s
+      .map((n) =>
+        n === 2 ? 'Coordinator' : n === 3 ? 'Master' : 'Principal'
+      )
+      .join(' → ');
+  }
   readonly stageLabel = workflowStageLabel;
   readonly statusTone = workflowStatusTone;
 
@@ -191,30 +203,41 @@ export class FileReview implements OnChanges, OnDestroy {
 
   forward(): void {
     if (!this.file || this.acting()) return;
-    if (this.hasAnyUnresolvedRevisions) {
+    if (this.hasUnresolvedRevisionsForActor) {
       this.errorMessage.set(
-        'Cannot forward: there are unresolved revisions on this document. Resolve them first.'
+        'Cannot forward: resolve your own open revision requests on this document first.'
       );
       return;
     }
     const body = this.commentBody.trim() || undefined;
-    const success =
-      this.file.document_type === 'examination' &&
-      this.currentRole === 3 &&
-      this.file.status === 'exam_master'
-        ? 'Document completed (finalized).'
-        : 'Forwarded to the next reviewer.';
+    const success = this.forwardSuccessMessage();
     this.runAction(
       () => this.fileService.forward(this.file!.id, body).toPromise(),
       success
     );
   }
 
+  private forwardSuccessMessage(): string {
+    const f = this.file!;
+    if (f.document_type === 'custom') {
+      const stops = customStopsResolved(f);
+      const role = this.currentRole;
+      const idx = role ? stops.indexOf(role) : -1;
+      if (idx === stops.length - 1 && role !== 4) {
+        return 'Document completed (finalized).';
+      }
+    }
+    if (f.document_type === 'examination' && f.status === 'exam_master' && this.currentRole === 3) {
+      return 'Forwarded to the Principal.';
+    }
+    return 'Forwarded to the next reviewer.';
+  }
+
   finalize(): void {
     if (!this.file || this.acting()) return;
-    if (this.hasAnyUnresolvedRevisions) {
+    if (this.hasUnresolvedRevisionsForActor) {
       this.errorMessage.set(
-        'Cannot finalize: there are unresolved revisions on this document. Resolve them first.'
+        'Cannot finalize: resolve your own open revision requests on this document first.'
       );
       return;
     }
@@ -227,10 +250,9 @@ export class FileReview implements OnChanges, OnDestroy {
 
   /**
    * Teacher-side handler for the file picker. Uploads the chosen PDF
-   * to /reupload, which keeps the same transaction id but rolls the
-   * workflow back to Coordinator. After the upload finishes we fully
-   * reload metadata + comments AND fetch the new PDF blob so the
-   * preview reflects the replacement.
+   * to /reupload, which keeps the same transaction id. The workflow
+   * stage stays the same; reviewers clear their own revision requests
+   * with Resolve after review.
    */
   onReuploadFile(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -247,7 +269,7 @@ export class FileReview implements OnChanges, OnDestroy {
     const fileId = this.file.id;
     this.runAction(
       () => this.fileService.reupload(fileId, file).toPromise(),
-      'Document re-uploaded. It is now back with the Coordinator.',
+      'Document re-uploaded. The file remains at the same review stage; reviewers resolve their own revision requests when satisfied.',
       { refreshPdf: true }
     );
     input.value = '';
@@ -307,17 +329,45 @@ export class FileReview implements OnChanges, OnDestroy {
   get canForward(): boolean {
     const role = this.currentRole;
     if (!this.file || !role) return false;
-    if (role === 4) return false;
+    const f = this.file;
+    const t = f.document_type ?? 'dlp';
+
+    if (t === 'custom') {
+      if (!this.isMyTurn) return false;
+      const stops = customStopsResolved(f);
+      const idx = stops.indexOf(role);
+      if (idx === -1) return false;
+      if (idx === stops.length - 1 && role === 4) return false;
+      return true;
+    }
+
+    if (role === 2) {
+      if (t === 'dlp') return false;
+    }
+    if (role === 4) {
+      return false;
+    }
     return (role === 2 || role === 3) && this.isMyTurn;
   }
 
   get canFinalize(): boolean {
     if (this.currentRole !== 4 || !this.file) return false;
     if (!this.isMyTurn) return false;
-    if ((this.file.document_type ?? 'dlp') === 'examination') {
-      return this.file.status === 'exam_principal';
+    const f = this.file;
+    const t = f.document_type ?? 'dlp';
+    if (t === 'examination') {
+      return f.status === 'exam_principal' && Number(f.current_level) === 4;
     }
-    return this.file.status === 'reviewed_by_master';
+    if (t === 'custom') {
+      const stops = customStopsResolved(f);
+      return (
+        stops.length > 0 &&
+        stops[stops.length - 1] === 4 &&
+        f.status === 'uploaded' &&
+        Number(f.current_level) === 4
+      );
+    }
+    return f.status === 'reviewed_by_master';
   }
 
   /**
@@ -330,9 +380,7 @@ export class FileReview implements OnChanges, OnDestroy {
     return this.currentRole === 1 && this.hasAnyUnresolvedRevisions;
   }
 
-  /** Every revision on this document that is still unresolved. Any
-   *  open revision blocks forwarding (Coordinator/Master) AND
-   *  finalizing (Principal), regardless of which reviewer raised it. */
+  /** Every revision on this document that is still unresolved. */
   get unresolvedRevisions(): FileComment[] {
     return this.comments.filter(
       (c) => c.action === 'revision' && !c.resolved_at
@@ -343,47 +391,46 @@ export class FileReview implements OnChanges, OnDestroy {
     return this.unresolvedRevisions.length > 0;
   }
 
-  /**
-   * Revisions raised by the *current reviewer's level* that are still
-   * pending. Used only for the Resolve UI; the gating logic uses
-   * hasAnyUnresolvedRevisions instead.
-   */
-  get unresolvedAtMyLevel(): FileComment[] {
-    const role = this.currentRole;
-    if (!role) return [];
-    return this.unresolvedRevisions.filter(
-      (c) => Number(c.role_level) === Number(role)
-    );
+  /** Open revisions raised by the current user; only these block Forward/Finalize for you. */
+  get unresolvedRevisionsForActor(): FileComment[] {
+    const uid = this.auth.user()?.id;
+    if (!uid) return [];
+    return this.unresolvedRevisions.filter((c) => c.user.id === uid);
   }
 
-  get hasUnresolvedRevisions(): boolean {
-    return this.hasAnyUnresolvedRevisions;
+  get hasUnresolvedRevisionsForActor(): boolean {
+    return this.unresolvedRevisionsForActor.length > 0;
   }
 
-  /**
-   * Forward label: legacy Examination rows at Master still complete via forward.
-   */
   get forwardButtonLabel(): string {
     if (!this.file) return 'Forward to next level';
+    if (this.file.document_type === 'custom') {
+      const stops = customStopsResolved(this.file);
+      const role = this.currentRole;
+      const idx = role ? stops.indexOf(role) : -1;
+      if (idx === stops.length - 1 && role !== 4) {
+        return 'Approve and complete';
+      }
+    }
     if (
       this.file.document_type === 'examination' &&
       this.currentRole === 3 &&
       this.file.status === 'exam_master'
     ) {
-      return 'Approve and complete';
+      return 'Forward to Principal';
     }
     return 'Forward to next level';
   }
 
   /**
-   * The Resolve button is shown next to a revision if the logged-in
-   * user is the reviewer who currently holds the file (Coordinator/
-   * Master/Admin) AND the revision is not yet resolved.
+   * Resolve is only for the user who created the revision, when the
+   * file is at their desk.
    */
   canResolve(comment: FileComment): boolean {
     if (comment.action !== 'revision' || comment.resolved_at) return false;
     const role = this.currentRole;
     if (!role || role === 1) return false;
+    if (comment.user.id !== this.auth.user()?.id) return false;
     return this.isMyTurn;
   }
 

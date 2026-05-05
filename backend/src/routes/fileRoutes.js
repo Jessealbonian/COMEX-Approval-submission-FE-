@@ -58,18 +58,17 @@ router.post(
   asyncHandler(addComment)
 );
 
-// Mark a revision as resolved. Allowed for any reviewer who currently
-// owns the file (Coordinator/Master/Admin); the controller enforces it.
+// Mark a revision as resolved. Only the reviewer who created it may resolve.
 router.post(
   '/:id/comments/:commentId/resolve',
   requireRole(ROLES.COORDINATOR, ROLES.MASTER, ROLES.ADMIN),
   asyncHandler(resolveComment)
 );
 
-// Forwarding: Coordinator and Master only.
+// Forwarding: Coordinator, Master, and Principal (Principal only forwards examinations to Master).
 router.post(
   '/:id/forward',
-  requireRole(ROLES.COORDINATOR, ROLES.MASTER),
+  requireRole(ROLES.COORDINATOR, ROLES.MASTER, ROLES.ADMIN),
   asyncHandler(forwardFile)
 );
 

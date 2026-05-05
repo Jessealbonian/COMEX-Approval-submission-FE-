@@ -6,14 +6,15 @@ import { Router } from '@angular/router';
 import { FileService } from '../../core/services/file.service';
 import {
   CommentAction,
+  DocumentType,
   FileComment,
   FileDoc,
   FileStatus,
-  DocumentType,
   documentTypeLabel,
+  customStopsResolved,
 } from '../../core/models/file.models';
 
-type DocumentStatus = 'Pending' | 'Checked' | 'For Revision';
+type DocumentStatus = 'Pending' | 'Checked' | 'For Revision' | 'Skipped';
 
 interface DocRow {
   id: number;
@@ -75,14 +76,19 @@ export class Documents implements OnInit {
         // Fan out to fetch comments per file so we can compute
         // per-stage reviewer + status.
         const detailRequests = files.map((f) =>
-          this.fileService.get(f.id).toPromise()
+          this.fileService.get(f.id).toPromise().then((d) => ({ id: f.id, d }))
         );
 
         Promise.all(detailRequests)
-          .then((details) => {
-            this.rows = details
-              .filter((d): d is { file: FileDoc; comments: FileComment[] } => !!d)
-              .map((d) => this.toRow(d.file, d.comments));
+          .then((pairs) => {
+            this.rows = pairs
+              .filter(
+                (p): p is { id: number; d: { file: FileDoc; comments: FileComment[] } } =>
+                  !!p.d &&
+                  p.d.file != null &&
+                  Number(p.d.file.id) === Number(p.id)
+              )
+              .map((p) => this.toRow(p.d.file, p.d.comments));
             this.loading.set(false);
           })
           .catch((err) => {
@@ -108,18 +114,67 @@ export class Documents implements OnInit {
   private toRow(file: FileDoc, comments: FileComment[]): DocRow {
     const dtype = file.document_type ?? 'dlp';
 
-    const lastForwardName = (level: 2 | 3 | 4): string => {
-      const hit = [...comments].reverse().find(
-        (c) => c.role_level === level && c.action === 'forward'
-      );
-      return hit?.user.name ?? 'N/A';
-    };
-
     const openRevisionAt = (level: 2 | 3 | 4): boolean =>
       comments.some(
         (c) =>
-          c.role_level === level && c.action === 'revision' && !c.resolved_at
+          Number(c.role_level) === level &&
+          c.action === 'revision' &&
+          !c.resolved_at
       );
+
+    const lastCheckpointReviewer = (level: 2 | 3 | 4): string =>
+      [...comments]
+        .reverse()
+        .find(
+          (c) =>
+            Number(c.role_level) === level &&
+            (c.action === 'forward' || c.action === 'finalize')
+        )
+        ?.user.name ?? 'N/A';
+
+    if (dtype === 'custom') {
+      const stops = customStopsResolved(file);
+      const hasC = stops.includes(2);
+      const hasM = stops.includes(3);
+      const hasP = stops.includes(4);
+      const cur = Number(file.current_level);
+
+      const revisions =
+        comments
+          .filter((c) => c.action === 'revision')
+          .map((c) => `${c.role}: ${c.body}`)
+          .join(' | ') || (file.status === 'finalized' ? 'Approved' : 'Awaiting review');
+
+      const statusAt = (level: 2 | 3 | 4): DocumentStatus => {
+        if (file.status === 'finalized') return 'Checked';
+        if (!stops.includes(level)) return 'Skipped';
+        if (cur > level) return 'Checked';
+        if (cur === level) {
+          return openRevisionAt(level) ? 'For Revision' : 'Pending';
+        }
+        return 'Pending';
+      };
+
+      return {
+        id: file.id,
+        name: file.original_name,
+        documentType: dtype,
+        documentTypeLabel: documentTypeLabel(dtype, file.custom_type_label),
+        submittedBy: file.uploaded_by.name,
+        submittedOn: new Date(file.created_at),
+        step2Header: 'Master',
+        step3Header: 'Principal',
+        coordChecked: hasC ? lastCheckpointReviewer(2) : 'N/A',
+        coordStatus: hasC ? statusAt(2) : 'Skipped',
+        step2Checked: hasM ? lastCheckpointReviewer(3) : 'N/A',
+        step2Status: hasM ? statusAt(3) : 'Skipped',
+        step3Checked: hasP ? lastCheckpointReviewer(4) : 'N/A',
+        step3Status: hasP ? statusAt(4) : 'Skipped',
+        revisions,
+        status: file.status,
+        current_level: file.current_level,
+      };
+    }
 
     const revisions =
       comments
@@ -128,46 +183,37 @@ export class Documents implements OnInit {
         .join(' | ') || (file.status === 'finalized' ? 'Approved' : 'Awaiting review');
 
     if (dtype === 'examination') {
-      const isLegacyAtMaster = file.status === 'exam_master';
+      const cur = Number(file.current_level);
 
-      const principalActor = [...comments].reverse().find(
-        (c) =>
-          c.role_level === 4 &&
-          (c.action === 'finalize' || c.action === 'forward')
-      );
+      let coordStatus: DocumentStatus;
+      if (file.status === 'finalized') {
+        coordStatus = 'Checked';
+      } else if (cur === 2 && file.status === 'uploaded') {
+        coordStatus = openRevisionAt(2) ? 'For Revision' : 'Pending';
+      } else if (cur > 2) {
+        coordStatus = 'Checked';
+      } else {
+        coordStatus = 'Pending';
+      }
 
-      const coordStatus: DocumentStatus =
-        file.status === 'uploaded' && file.current_level === 2
-          ? openRevisionAt(2)
-            ? 'For Revision'
-            : 'Pending'
-          : 'Checked';
+      let masterStatus: DocumentStatus;
+      if (file.status === 'finalized') {
+        masterStatus = 'Checked';
+      } else if (file.status === 'exam_master' && cur === 3) {
+        masterStatus = openRevisionAt(3) ? 'For Revision' : 'Pending';
+      } else if (cur > 3 || file.status === 'exam_principal') {
+        masterStatus = 'Checked';
+      } else {
+        masterStatus = 'Pending';
+      }
 
-      const principalStatus: DocumentStatus =
-        file.status === 'finalized' || isLegacyAtMaster
-          ? 'Checked'
-          : file.status === 'exam_principal' && file.current_level === 4
-            ? openRevisionAt(4)
-              ? 'For Revision'
-              : 'Pending'
-            : 'Pending';
-
-      let step3Header = '—';
-      let step3Checked = '—';
-      let step3Status: DocumentStatus = 'Pending';
-
-      if (isLegacyAtMaster) {
-        step3Header = 'Master';
-        step3Status =
-          file.status === 'finalized'
-            ? 'Checked'
-            : file.current_level === 3
-              ? openRevisionAt(3)
-                ? 'For Revision'
-                : 'Pending'
-              : 'Pending';
-        step3Checked =
-          step3Status === 'Checked' ? lastForwardName(3) : 'N/A';
+      let principalStatus: DocumentStatus;
+      if (file.status === 'finalized') {
+        principalStatus = 'Checked';
+      } else if (file.status === 'exam_principal' && cur === 4) {
+        principalStatus = openRevisionAt(4) ? 'For Revision' : 'Pending';
+      } else {
+        principalStatus = 'Pending';
       }
 
       return {
@@ -177,41 +223,48 @@ export class Documents implements OnInit {
         documentTypeLabel: documentTypeLabel(dtype),
         submittedBy: file.uploaded_by.name,
         submittedOn: new Date(file.created_at),
-        step2Header: 'Principal',
-        step3Header,
-        coordChecked: coordStatus === 'Checked' ? lastForwardName(2) : 'N/A',
+        step2Header: 'Master',
+        step3Header: 'Principal',
+        coordChecked: coordStatus === 'Checked' ? lastCheckpointReviewer(2) : 'N/A',
         coordStatus,
-        step2Checked:
-          principalStatus === 'Checked'
-            ? principalActor?.user.name ?? 'N/A'
-            : 'N/A',
-        step2Status: principalStatus,
-        step3Checked,
-        step3Status,
+        step2Checked: masterStatus === 'Checked' ? lastCheckpointReviewer(3) : 'N/A',
+        step2Status: masterStatus,
+        step3Checked: principalStatus === 'Checked' ? lastCheckpointReviewer(4) : 'N/A',
+        step3Status: principalStatus,
         revisions,
         status: file.status,
         current_level: file.current_level,
       };
     }
 
+    const coordinatorInDlpPath =
+      comments.some((c) => Number(c.role_level) === 2 && c.action === 'forward') ||
+      Number(file.current_level) === 2 ||
+      file.status === 'reviewed_by_coordinator';
     const step2Header = 'Master';
     const step3Header = 'Principal';
+
+    const curLevel = Number(file.current_level);
+
     const stage = (level: 2 | 3 | 4) => {
-      const acted = comments.find((c) => c.role_level === level);
+      const acted = comments.find((c) => Number(c.role_level) === level);
       const isCheckpoint = (a: CommentAction) =>
         a === 'forward' || a === 'finalize' || a === 'comment' || a === 'revision';
       const checkpoint = comments.find(
-        (c) => c.role_level === level && isCheckpoint(c.action)
+        (c) => Number(c.role_level) === level && isCheckpoint(c.action)
       );
 
       let status: DocumentStatus = 'Pending';
-      if (file.current_level > level) {
+      if (curLevel > level) {
         status = 'Checked';
-      } else if (file.current_level === level) {
-        const hasRevision = comments.some(
-          (c) => c.role_level === level && c.action === 'revision'
+      } else if (curLevel === level) {
+        const hasOpenRev = comments.some(
+          (c) =>
+            Number(c.role_level) === level &&
+            c.action === 'revision' &&
+            !c.resolved_at
         );
-        status = hasRevision ? 'For Revision' : 'Pending';
+        status = hasOpenRev ? 'For Revision' : 'Pending';
       } else if (level === 4 && file.status === 'finalized') {
         status = 'Checked';
       }
@@ -227,6 +280,28 @@ export class Documents implements OnInit {
     const principal = stage(4);
     if (file.status === 'finalized') {
       principal.status = 'Checked';
+    }
+
+    if (!coordinatorInDlpPath) {
+      return {
+        id: file.id,
+        name: file.original_name,
+        documentType: dtype,
+        documentTypeLabel: documentTypeLabel(dtype),
+        submittedBy: file.uploaded_by.name,
+        submittedOn: new Date(file.created_at),
+        step2Header,
+        step3Header,
+        coordChecked: 'Not in workflow',
+        coordStatus: 'Skipped',
+        step2Checked: master.reviewer,
+        step2Status: master.status,
+        step3Checked: principal.reviewer,
+        step3Status: principal.status,
+        revisions,
+        status: file.status,
+        current_level: file.current_level,
+      };
     }
 
     return {

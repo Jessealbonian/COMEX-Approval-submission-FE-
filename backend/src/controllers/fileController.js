@@ -7,6 +7,7 @@ const env = require('../config/env');
 const HttpError = require('../utils/httpError');
 const { ROLES, roleName } = require('../utils/roles');
 const { STATUS, DOCUMENT_TYPE } = require('../utils/status');
+const { stopsFromRow, parseAndNormalizeCustomStops } = require('../utils/customStops');
 const {
   requireString,
   optionalString,
@@ -20,7 +21,8 @@ const logger = require('../utils/logger');
  * frontend cannot escalate visibility.
  *
  *   Teacher (1)     -> only files they uploaded
- *   Coordinator (2) -> files routed at level >= 2
+ *   Coordinator (2) -> examination; DLP when past pure-Master start; custom when
+ *                      `custom_stops` includes Coordinator (2)
  *   Master (3)      -> files routed at level >= 3
  *   Admin (4)       -> all files
  */
@@ -29,7 +31,22 @@ function visibilityClause(user) {
     case ROLES.TEACHER:
       return { sql: 'f.uploaded_by = ?', params: [user.id] };
     case ROLES.COORDINATOR:
-      return { sql: 'f.current_level >= ?', params: [ROLES.COORDINATOR] };
+      return {
+        sql: `( (f.document_type = ? AND f.current_level >= ?)
+               OR (f.document_type = ? AND NOT (f.status = ? AND f.current_level = ?))
+               OR (f.document_type = ? AND f.current_level >= ?
+                   AND JSON_CONTAINS(COALESCE(f.custom_stops, JSON_ARRAY()), '2'))
+             )`,
+        params: [
+          DOCUMENT_TYPE.EXAMINATION,
+          ROLES.COORDINATOR,
+          DOCUMENT_TYPE.DLP,
+          STATUS.UPLOADED,
+          ROLES.MASTER,
+          DOCUMENT_TYPE.CUSTOM,
+          ROLES.COORDINATOR,
+        ],
+      };
     case ROLES.MASTER:
       return {
         sql:
@@ -48,6 +65,11 @@ function shapeFile(row) {
     id: row.id,
     title: row.title,
     description: row.description,
+    more_details: row.more_details ?? null,
+    custom_type_label: row.custom_type_label ?? null,
+    custom_route: row.custom_route ?? null,
+    custom_stops:
+      row.document_type === DOCUMENT_TYPE.CUSTOM ? stopsFromRow(row) : null,
     original_name: row.original_name,
     mime_type: row.mime_type,
     size_bytes: Number(row.size_bytes),
@@ -66,7 +88,9 @@ function shapeFile(row) {
 }
 
 const FILE_SELECT = `
-  SELECT f.id, f.title, f.description, f.original_name, f.stored_name,
+  SELECT f.id, f.title, f.description, f.more_details,
+         f.custom_type_label, f.custom_route, f.custom_stops,
+         f.original_name, f.stored_name,
          f.mime_type, f.size_bytes, f.current_level, f.status, f.document_type,
          f.uploaded_by, f.created_at, f.updated_at,
          u.name  AS uploader_name,
@@ -78,7 +102,11 @@ const FILE_SELECT = `
 /**
  * POST /api/files (Teacher only) - multipart/form-data
  * fields: title (string, required), description (string, optional),
- * document_type (string, optional: `dlp` | `examination`, default `dlp`), file (PDF)
+ * more_details (string, optional),
+ * custom_type_label (string, optional) — custom document name ("More"). When set, document is custom.
+ * custom_stops (JSON string) — required: [2], [3], [4], or combinations (Coordinator=2, Master=3, Principal=4).
+ * document_type (dlp | examination) — ignored when custom_type_label is set.
+ * file (PDF)
  */
 async function uploadFile(req, res, next) {
   try {
@@ -86,27 +114,56 @@ async function uploadFile(req, res, next) {
 
     let title;
     let description;
+    let moreDetails;
+    let customTypeLabel;
     try {
       title = requireString(req.body && req.body.title, 'title', { min: 2, max: 255 });
       description = optionalString(req.body && req.body.description, 'description', {
         max: 4000,
       });
+      moreDetails = optionalString(req.body && req.body.more_details, 'more_details', {
+        max: 4000,
+      });
+      customTypeLabel = optionalString(
+        req.body && (req.body.custom_type_label ?? req.body.more),
+        'custom_type_label',
+        { max: 255 }
+      );
     } catch (e) {
       fs.unlink(req.file.path, () => {});
       throw e;
     }
 
+    const customLabelTrimmed = customTypeLabel && String(customTypeLabel).trim();
     let documentType = DOCUMENT_TYPE.DLP;
-    if (req.body && req.body.document_type != null) {
-      const raw = String(req.body.document_type).trim().toLowerCase();
-      if (raw === 'examination' || raw === 'exam') {
-        documentType = DOCUMENT_TYPE.EXAMINATION;
-      } else if (raw === 'dlp') {
-        documentType = DOCUMENT_TYPE.DLP;
-      } else {
-        fs.unlink(req.file.path, () => {});
-        throw new HttpError(400, 'document_type must be dlp or examination');
+    let initialLevel = ROLES.MASTER;
+    let customStopsJson = null;
+
+    if (customLabelTrimmed) {
+      documentType = DOCUMENT_TYPE.CUSTOM;
+      const stops = parseAndNormalizeCustomStops(req.body);
+      customStopsJson = JSON.stringify(stops);
+      initialLevel = stops[0];
+    } else {
+      if (req.body && req.body.document_type != null) {
+        const raw = String(req.body.document_type).trim().toLowerCase();
+        if (raw === 'examination' || raw === 'exam') {
+          documentType = DOCUMENT_TYPE.EXAMINATION;
+        } else if (raw === 'dlp') {
+          documentType = DOCUMENT_TYPE.DLP;
+        } else if (raw === 'custom') {
+          fs.unlink(req.file.path, () => {});
+          throw new HttpError(
+            400,
+            'Set custom_type_label (More) and custom_stops for a custom document type'
+          );
+        } else {
+          fs.unlink(req.file.path, () => {});
+          throw new HttpError(400, 'document_type must be dlp or examination');
+        }
       }
+      initialLevel =
+        documentType === DOCUMENT_TYPE.DLP ? ROLES.MASTER : ROLES.COORDINATOR;
     }
 
     const conn = await pool.getConnection();
@@ -115,18 +172,23 @@ async function uploadFile(req, res, next) {
 
       const [result] = await conn.query(
         `INSERT INTO files
-          (uploaded_by, title, description, original_name, stored_name,
+          (uploaded_by, title, description, more_details, custom_type_label, custom_route,
+           custom_stops, original_name, stored_name,
            mime_type, size_bytes, current_level, status, document_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           req.user.id,
           title,
           description,
+          moreDetails ?? null,
+          customLabelTrimmed || null,
+          null,
+          customStopsJson,
           req.file.originalname.slice(0, 255),
           req.file.filename,
           'application/pdf',
           req.file.size,
-          ROLES.COORDINATOR,
+          initialLevel,
           STATUS.UPLOADED,
           documentType,
         ]
@@ -232,8 +294,22 @@ async function loadVisibleFile(user, fileId) {
   if (level === ROLES.TEACHER && row.uploaded_by !== user.id) {
     throw new HttpError(403, 'Forbidden');
   }
-  if (level === ROLES.COORDINATOR && row.current_level < ROLES.COORDINATOR) {
-    throw new HttpError(403, 'Forbidden');
+  if (level === ROLES.COORDINATOR) {
+    if (row.current_level < ROLES.COORDINATOR) {
+      throw new HttpError(403, 'Forbidden');
+    }
+    if (row.document_type === DOCUMENT_TYPE.CUSTOM) {
+      const stops = stopsFromRow(row);
+      if (!stops.includes(ROLES.COORDINATOR)) {
+        throw new HttpError(403, 'Forbidden');
+      }
+    } else if (
+      row.document_type === DOCUMENT_TYPE.DLP &&
+      row.status === STATUS.UPLOADED &&
+      Number(row.current_level) === ROLES.MASTER
+    ) {
+      throw new HttpError(403, 'Forbidden');
+    }
   }
   if (level === ROLES.MASTER) {
     if (row.current_level < ROLES.MASTER) {
@@ -332,10 +408,9 @@ async function downloadFile(req, res, next) {
  *
  * Replaces the stored PDF for a file the teacher already owns, while
  * keeping the same row id (so the "transaction" stays the same). The
- * workflow is reset back to the Coordinator stage so reviewers see
- * the new version, and any open revision requests are auto-resolved
- * (re-uploading IS the response to the revision). The previous PDF
- * is deleted from disk.
+ * workflow position unchanged. Open revision requests are **not** cleared
+ * automatically; only the reviewer who requested each revision may resolve it.
+ * deleted from disk.
  */
 async function reuploadFile(req, res, next) {
   try {
@@ -348,7 +423,7 @@ async function reuploadFile(req, res, next) {
       await conn.beginTransaction();
 
       const [rows] = await conn.query(
-        `SELECT id, uploaded_by, stored_name, status
+        `SELECT id, uploaded_by, stored_name, status, current_level, document_type
            FROM files WHERE id = ? FOR UPDATE`,
         [id]
       );
@@ -387,6 +462,8 @@ async function reuploadFile(req, res, next) {
       }
 
       const oldStored = file.stored_name;
+      const keepLevel = file.current_level;
+      const keepStatus = file.status;
 
       await conn.query(
         `UPDATE files
@@ -401,8 +478,8 @@ async function reuploadFile(req, res, next) {
           req.file.originalname.slice(0, 255),
           req.file.filename,
           req.file.size,
-          ROLES.COORDINATOR,
-          STATUS.UPLOADED,
+          keepLevel,
+          keepStatus,
           file.id,
         ]
       );

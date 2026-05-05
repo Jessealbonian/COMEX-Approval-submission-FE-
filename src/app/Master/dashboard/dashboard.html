@@ -1,7 +1,7 @@
 <section class="dashboard">
   <header class="dashboard-header">
     <div>
-      <p class="eyebrow">Master Console</p>
+      <p class="eyebrow">Master Console<span *ngIf="roleLevel"> · Role level {{ roleLevel }}</span></p>
       <h1>Welcome back, {{ userName }}</h1>
       <p class="subtitle">Review DLP files after the Coordinator clears them. Older Examination items may still appear if they were already routed to Master.</p>
     </div>
@@ -23,7 +23,10 @@
   <section class="card wide">
     <div class="card-header">
       <h2>Your Review Queue</h2>
-      <a routerLink="/master/document" class="link">All documents &rarr;</a>
+      <div class="card-header-links">
+        <a routerLink="/profile" class="link">My profile</a>
+        <a routerLink="/master/document" class="link">All documents &rarr;</a>
+      </div>
     </div>
 
     <div class="table-wrap">

@@ -45,8 +45,9 @@
                   [class.pending]="row.coordStatus === 'Pending'"
                   [class.revision]="row.coordStatus === 'For Revision'"
                   [class.approved]="row.coordStatus === 'Checked'"
+                  [class.skipped]="row.coordStatus === 'Skipped'"
                 >
-                  {{ row.coordStatus }}
+                  {{ row.coordStatus === 'Skipped' ? 'N/A' : row.coordStatus }}
                 </span>
               </td>
               <td>
@@ -64,32 +65,18 @@
                 </span>
               </td>
               <td>
-                <ng-container
-                  *ngIf="row.documentType === 'examination' && row.step3Header === '—'; else step3Reviewer"
-                >
-                  <span class="muted-cell">N/A</span>
-                </ng-container>
-                <ng-template #step3Reviewer>
-                  <span class="small-muted">{{ row.step3Header }}</span><br />
-                  {{ row.step3Checked }}
-                </ng-template>
+                <span class="small-muted">{{ row.step3Header }}</span><br />
+                {{ row.step3Checked }}
               </td>
               <td>
-                <ng-container
-                  *ngIf="row.documentType === 'examination' && row.step3Header === '—'; else step3StatusCell"
+                <span
+                  class="status"
+                  [class.pending]="row.step3Status === 'Pending'"
+                  [class.revision]="row.step3Status === 'For Revision'"
+                  [class.approved]="row.step3Status === 'Checked'"
                 >
-                  <span class="muted-cell">—</span>
-                </ng-container>
-                <ng-template #step3StatusCell>
-                  <span
-                    class="status"
-                    [class.pending]="row.step3Status === 'Pending'"
-                    [class.revision]="row.step3Status === 'For Revision'"
-                    [class.approved]="row.step3Status === 'Checked'"
-                  >
-                    {{ row.step3Status }}
-                  </span>
-                </ng-template>
+                  {{ row.step3Status }}
+                </span>
               </td>
               <td>{{ row.revisions }}</td>
             </tr>

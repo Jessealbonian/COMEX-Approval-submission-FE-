@@ -113,6 +113,12 @@ thead th {
 	border-color: #bbf7d0;
 }
 
+.status.skipped {
+	color: #6b7280;
+	border-color: #d1d5db;
+	background: #f9fafb;
+}
+
 .muted-row {
 	color: #6b7280;
 	font-size: 0.9rem;

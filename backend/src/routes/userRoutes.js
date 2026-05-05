@@ -7,16 +7,30 @@ const { ROLES } = require('../utils/roles');
 const {
   createUser,
   listUsers,
+  getUser,
+  getMyProfile,
+  updateMyProfile,
   setUserActive,
+  updateUser,
+  deleteUser,
 } = require('../controllers/userController');
 const asyncHandler = require('../utils/asyncHandler');
 
 const router = express.Router();
 
-router.use(authenticate, requireRole(ROLES.ADMIN));
+router.use(authenticate);
+
+router.get('/me/profile', asyncHandler(getMyProfile));
+router.patch('/me/profile', asyncHandler(updateMyProfile));
+
+router.use(requireRole(ROLES.ADMIN));
 
 router.post('/', asyncHandler(createUser));
 router.get('/', asyncHandler(listUsers));
+
 router.patch('/:id/active', asyncHandler(setUserActive));
+router.delete('/:id', asyncHandler(deleteUser));
+router.patch('/:id', asyncHandler(updateUser));
+router.get('/:id', asyncHandler(getUser));
 
 module.exports = router;

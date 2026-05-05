@@ -28,16 +28,19 @@ const NAV_LINKS: Record<AppSection, NavItem[]> = {
   ],
   teacher: [
     { label: 'Home', icon: 'home', route: '/teacher/home' },
+    { label: 'Profile', icon: 'person', route: '/profile' },
     { label: 'Documents', icon: 'description', route: '/teacher/documents' },
     { label: 'Upload', icon: 'upload_file', route: '/teacher/upload' },
   ],
   coard: [
     { label: 'Dashboard', icon: 'dashboard', route: '/coard/dashboard' },
+    { label: 'Profile', icon: 'person', route: '/profile' },
     { label: 'Document', icon: 'description', route: '/coard/document' },
     { label: 'History', icon: 'history', route: '/coard/history' },
   ],
   master: [
     { label: 'Dashboard', icon: 'dashboard', route: '/master/dashboard' },
+    { label: 'Profile', icon: 'person', route: '/profile' },
     { label: 'Document', icon: 'description', route: '/master/document' },
     { label: 'History', icon: 'history', route: '/master/history' },
   ],
@@ -170,11 +173,21 @@ export class Sidenav implements OnInit, OnDestroy {
 
   private updateSectionFromUrl(url: string): void {
     const path = url.split('?')[0].split('#')[0];
+    const isProfileStandalone = path === '/profile';
     const isAdminSection = path.startsWith('/admin');
     const isTeacherSection = path.startsWith('/teacher');
     const isCoardSection = path.startsWith('/coard');
     const isMasterSection = path.startsWith('/master');
     const isLoginPage = path.endsWith('/login');
+
+    if (isProfileStandalone && !isLoginPage) {
+      const level = Number(this.auth.roleLevel() ?? 0);
+      if (level === 1) this.currentSection = 'teacher';
+      else if (level === 2) this.currentSection = 'coard';
+      else if (level === 3) this.currentSection = 'master';
+      this.shouldRun = level >= 1 && level <= 3;
+      return;
+    }
 
     if (isTeacherSection) {
       this.currentSection = 'teacher';

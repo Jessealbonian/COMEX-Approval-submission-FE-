@@ -14,6 +14,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 import { AuthService } from '../../core/services/auth.service';
 import { FileService } from '../../core/services/file.service';
+import { FileDoc, customStopsResolved } from '../../core/models/file.models';
 
 @Component({
   selector: 'app-upload',
@@ -36,7 +37,20 @@ export class Upload implements OnDestroy {
 
   title = '';
   description = '';
-  /** DLP keeps the legacy chain; Examination uses Coordinator → Principal → Master. */
+  /** Optional extra notes (maps to `more_details` on the server). */
+  additionalDetails = '';
+  /**
+   * "More" — custom document type label. When set, predefined workflow is
+   * locked; pick reviewers with the toggles.
+   */
+  moreCustomType = '';
+  customMode = false;
+
+  pickCoordinator = false;
+  pickMaster = false;
+  pickPrincipal = false;
+
+  /** Workflow for predefined types only (locked when using custom "More"). */
   documentType: 'dlp' | 'examination' = 'dlp';
 
   documentName = '';
@@ -87,13 +101,21 @@ export class Upload implements OnDestroy {
     if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
   }
 
-  /**
-   * Sends the selected PDF + metadata to the backend. The HttpClient
-   * automatically sets `Content-Type: multipart/form-data; boundary=...`
-   * when given a FormData payload, and the auth interceptor attaches
-   * the JWT, so this single call works the same locally and across
-   * different hosting environments.
-   */
+  toggleStop(level: 2 | 3 | 4): void {
+    if (level === 2) this.pickCoordinator = !this.pickCoordinator;
+    if (level === 3) this.pickMaster = !this.pickMaster;
+    if (level === 4) this.pickPrincipal = !this.pickPrincipal;
+  }
+
+  /** Sorted ascending: Coordinator → Master → Principal. */
+  private selectedStopsSorted(): number[] {
+    const s: number[] = [];
+    if (this.pickCoordinator) s.push(2);
+    if (this.pickMaster) s.push(3);
+    if (this.pickPrincipal) s.push(4);
+    return s;
+  }
+
   submitUpload(): void {
     if (!this.selectedFile || this.submitting()) return;
     if (!this.title.trim()) {
@@ -101,42 +123,71 @@ export class Upload implements OnDestroy {
       return;
     }
 
+    const customLabel = this.moreCustomType.trim();
+    if (customLabel) {
+      const stops = this.selectedStopsSorted();
+      if (stops.length === 0) {
+        this.uploadError =
+          'Pick at least one reviewer (Coordinator, Master, and/or Principal).';
+        return;
+      }
+    }
+
     this.submitting.set(true);
     this.uploadError = '';
     this.successMessage.set('');
 
-    this.fileService
-      .upload(
-        this.selectedFile,
-        this.title.trim(),
-        this.description.trim() || undefined,
-        this.documentType
-      )
-      .subscribe({
-        next: (res) => {
-          this.submitting.set(false);
-          this.documentName = res.file.original_name;
-          this.submittedAt = new Date(res.file.created_at);
-          this.setPdfPreview(this.selectedFile!);
-          const msg =
-            res.file.document_type === 'examination'
-              ? 'Upload submitted. Examination document routed to the Coordinator.'
-              : 'Upload submitted. DLP routed to the Coordinator.';
-          this.successMessage.set(msg);
-          this.title = '';
-          this.description = '';
-          this.documentType = 'dlp';
-          this.cancelSelection();
-        },
-        error: (err: unknown) => {
-          this.submitting.set(false);
-          this.uploadError = this.describe(err);
-        },
-      });
+    const extra = this.additionalDetails.trim() || undefined;
+    const stops = this.selectedStopsSorted();
+    const uploadReq = customLabel
+      ? this.fileService.upload(
+          this.selectedFile,
+          this.title.trim(),
+          this.description.trim() || undefined,
+          'dlp',
+          extra,
+          customLabel,
+          stops
+        )
+      : this.fileService.upload(
+          this.selectedFile,
+          this.title.trim(),
+          this.description.trim() || undefined,
+          this.documentType,
+          extra
+        );
+
+    uploadReq.subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        this.documentName = res.file.original_name;
+        this.submittedAt = new Date(res.file.created_at);
+        this.setPdfPreview(this.selectedFile!);
+        this.successMessage.set(uploadSuccessMessage(res.file));
+        this.title = '';
+        this.description = '';
+        this.additionalDetails = '';
+        this.moreCustomType = '';
+        this.customMode = false;
+        this.pickCoordinator = false;
+        this.pickMaster = false;
+        this.pickPrincipal = false;
+        this.documentType = 'dlp';
+        this.cancelSelection();
+      },
+      error: (err: unknown) => {
+        this.submitting.set(false);
+        this.uploadError = this.describe(err);
+      },
+    });
   }
 
   goToDocuments(): void {
     void this.router.navigateByUrl('/teacher/documents');
+  }
+
+  onMoreCustomChange(): void {
+    this.customMode = this.moreCustomType.trim().length > 0;
   }
 
   private describe(err: unknown): string {
@@ -177,4 +228,22 @@ export class Upload implements OnDestroy {
       this.pdfObjectUrl = null;
     }
   }
+}
+
+function uploadSuccessMessage(file: FileDoc): string {
+  if (file.document_type === 'custom') {
+    const stops = customStopsResolved(file);
+    const first = stops[0];
+    if (first === 2) {
+      return 'Upload submitted. Custom document is with the Coordinator first.';
+    }
+    if (first === 3) {
+      return 'Upload submitted. Custom document is with the Master first.';
+    }
+    return 'Upload submitted. Custom document is with the Principal first.';
+  }
+  if (file.document_type === 'examination') {
+    return 'Upload submitted. Examination document is with the Coordinator.';
+  }
+  return 'Upload submitted. DLP document is with the Master (Coordinator is not in this workflow).';
 }

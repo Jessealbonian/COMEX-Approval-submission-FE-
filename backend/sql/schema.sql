@@ -7,17 +7,18 @@
 --   4 = Principal / Admin
 --
 -- File status values:
---   'uploaded'                 - just submitted by Teacher (awaiting Coordinator)
---   'reviewed_by_coordinator'  - DLP: Coordinator forwarded to Master
+--   'uploaded'                 - Teacher submitted; document is with the workflow's first reviewer
+--   'reviewed_by_coordinator'  - DLP: Coordinator forwarded to Master (legacy / Coordinator path)
 --   'reviewed_by_master'       - DLP: Master forwarded to Principal
---   'exam_principal'           - Examination: Coordinator forwarded to Principal (Principal then finalizes)
---   'exam_master'              - Legacy: old flow sent some exams to Master before finalizing
---   'finalized'                - DLP: Principal finalized; Examination: Principal finalized (or legacy Master forward)
+--   'exam_principal'           - Examination: with Principal (after Master review)
+--   'exam_master'              - Examination: with Master (after Coordinator review)
+--   'finalized'                - Completed
 --   'returned'                 - sent back for revision (optional)
 --
 -- document_type:
---   'dlp'          - Teacher → Coordinator → Master → Principal (finalize)
---   'examination'  - Teacher → Coordinator → Principal (finalize)
+--   'dlp'          - Teacher → Master → Principal (finalize); Coordinator is out of this path
+--   'examination'  - Teacher → Coordinator → Master → Principal (Principal finalizes)
+--   'custom'       - Teacher selects reviewers via custom_stops (JSON array of 2,3,4)
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS `comex_approval`
@@ -56,6 +57,10 @@ CREATE TABLE IF NOT EXISTS `files` (
   `uploaded_by`    INT UNSIGNED NOT NULL,
   `title`          VARCHAR(255) NOT NULL,
   `description`    TEXT NULL,
+  `more_details`   TEXT NULL,
+  `custom_type_label` VARCHAR(255) NULL,
+  `custom_route`   ENUM('master_only','principal_only','both') NULL,
+  `custom_stops`   JSON NULL,
   `original_name`  VARCHAR(255) NOT NULL,
   `stored_name`    VARCHAR(255) NOT NULL,
   `mime_type`      VARCHAR(120) NOT NULL,
@@ -70,7 +75,7 @@ CREATE TABLE IF NOT EXISTS `files` (
                      'exam_principal',
                      'exam_master'
                    ) NOT NULL DEFAULT 'uploaded',
-  `document_type`  ENUM('dlp', 'examination') NOT NULL DEFAULT 'dlp',
+  `document_type`  ENUM('dlp', 'examination', 'custom') NOT NULL DEFAULT 'dlp',
   `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                     ON UPDATE CURRENT_TIMESTAMP,

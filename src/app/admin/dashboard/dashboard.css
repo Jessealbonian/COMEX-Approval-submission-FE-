@@ -278,6 +278,13 @@ thead th {
 	font-size: 0.9rem;
 }
 
+.toolbar-links {
+	margin: 0 0 1rem;
+}
+
+.toolbar-links .link {
+	font-weight: 600;
+}
 .error-banner {
 	background: #fef2f2;
 	border: 1px solid #fecaca;

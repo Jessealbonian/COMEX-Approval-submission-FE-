@@ -3,13 +3,15 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuthUser, RoleLevel } from '../models/auth.models';
+import {
+  AdminUserUpdatePayload,
+  AuthUser,
+  RoleLevel,
+  SelfProfilePayload,
+  UserPublicProfile,
+} from '../models/auth.models';
 
-export interface ManagedUser extends AuthUser {
-  is_active: 0 | 1 | boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type ManagedUser = UserPublicProfile;
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
@@ -22,18 +24,39 @@ export class UserService {
     return this.http.get<{ users: ManagedUser[] }>(this.base, { params });
   }
 
+  getById(id: number): Observable<{ user: ManagedUser }> {
+    return this.http.get<{ user: ManagedUser }>(`${this.base}/${id}`);
+  }
+
   create(input: {
     name: string;
     email: string;
     password: string;
     role_level: RoleLevel;
-  }): Observable<{ user: AuthUser }> {
-    return this.http.post<{ user: AuthUser }>(this.base, input);
+    teacher_rank?: number | null;
+  } & Partial<SelfProfilePayload>): Observable<{ user: ManagedUser }> {
+    return this.http.post<{ user: ManagedUser }>(this.base, input);
+  }
+
+  update(id: number, body: AdminUserUpdatePayload): Observable<{ user: ManagedUser }> {
+    return this.http.patch<{ user: ManagedUser }>(`${this.base}/${id}`, body);
+  }
+
+  delete(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/${id}`);
   }
 
   setActive(id: number, isActive: boolean): Observable<{ ok: boolean }> {
     return this.http.patch<{ ok: boolean }>(`${this.base}/${id}/active`, {
       is_active: isActive,
     });
+  }
+
+  getMyProfile(): Observable<{ user: ManagedUser }> {
+    return this.http.get<{ user: ManagedUser }>(`${this.base}/me/profile`);
+  }
+
+  patchMyProfile(body: SelfProfilePayload | AdminUserUpdatePayload): Observable<{ user: ManagedUser }> {
+    return this.http.patch<{ user: ManagedUser }>(`${this.base}/me/profile`, body);
   }
 }

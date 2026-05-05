@@ -23,6 +23,11 @@ export class Dashboard implements OnInit {
   readonly errorMessage = signal('');
   readonly userName = this.auth.user()?.name ?? 'Master';
 
+  /** System role level for this account (Master = 3). */
+  get roleLevel(): number {
+    return Number(this.auth.roleLevel() ?? 0);
+  }
+
   awaitingMe = 0;
   total = 0;
   queue: FileDoc[] = [];

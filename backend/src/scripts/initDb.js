@@ -44,6 +44,24 @@ const ADDITIVE_MIGRATIONS = [
      ADD CONSTRAINT \`fk_comments_resolved_by\`
        FOREIGN KEY (\`resolved_by\`) REFERENCES \`users\`(\`id\`)
        ON UPDATE CASCADE ON DELETE SET NULL`,
+  `ALTER TABLE \`files\`
+     ADD COLUMN \`more_details\` TEXT NULL AFTER \`description\``,
+  `ALTER TABLE \`files\`
+     ADD COLUMN \`custom_type_label\` VARCHAR(255) NULL AFTER \`more_details\``,
+  `ALTER TABLE \`files\`
+     ADD COLUMN \`custom_route\`
+       ENUM('master_only','principal_only','both') NULL AFTER \`custom_type_label\``,
+  `ALTER TABLE \`files\`
+     MODIFY COLUMN \`document_type\`
+       ENUM('dlp','examination','custom') NOT NULL DEFAULT 'dlp'`,
+  `ALTER TABLE \`files\`
+     ADD COLUMN \`custom_stops\` JSON NULL AFTER \`custom_route\``,
+  `UPDATE \`files\` SET \`custom_stops\` = JSON_ARRAY(3)
+     WHERE \`document_type\` = 'custom' AND \`custom_stops\` IS NULL AND \`custom_route\` = 'master_only'`,
+  `UPDATE \`files\` SET \`custom_stops\` = JSON_ARRAY(4)
+     WHERE \`document_type\` = 'custom' AND \`custom_stops\` IS NULL AND \`custom_route\` = 'principal_only'`,
+  `UPDATE \`files\` SET \`custom_stops\` = JSON_ARRAY(3,4)
+     WHERE \`document_type\` = 'custom' AND \`custom_stops\` IS NULL AND \`custom_route\` = 'both'`,
 ];
 
 const IGNORABLE_ERROR_CODES = new Set([

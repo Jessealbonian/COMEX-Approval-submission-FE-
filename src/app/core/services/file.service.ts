@@ -8,6 +8,7 @@ import {
   FileDoc,
   FileStatus,
   FileWithComments,
+  DocumentType,
 } from '../models/file.models';
 
 @Injectable({ providedIn: 'root' })
@@ -19,21 +20,28 @@ export class FileService {
     file: File,
     title: string,
     description?: string,
-    documentType: 'dlp' | 'examination' = 'dlp'
+    documentType: DocumentType = 'dlp',
+    moreDetails?: string,
+    customTypeLabel?: string,
+    customStops?: number[]
   ): Observable<{ file: FileDoc }> {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('title', title);
     fd.append('document_type', documentType);
     if (description) fd.append('description', description);
+    if (moreDetails) fd.append('more_details', moreDetails);
+    if (customTypeLabel?.trim() && customStops && customStops.length > 0) {
+      fd.append('custom_type_label', customTypeLabel.trim());
+      fd.append('custom_stops', JSON.stringify(customStops));
+    }
     return this.http.post<{ file: FileDoc }>(this.base, fd);
   }
 
   /**
    * Replace the PDF on an existing transaction (Teacher only). The
-   * row id stays the same, so the document's "transaction number"
-   * does not change. Backend resets the workflow back to Coordinator
-   * and auto-resolves any open revision requests.
+   * workflow stage stays the same; open revisions must be cleared by
+   * each reviewer via Resolve when satisfied.
    */
   reupload(fileId: number, file: File): Observable<{ file: FileDoc }> {
     const fd = new FormData();
@@ -87,10 +95,8 @@ export class FileService {
   }
 
   /**
-   * Mark a revision comment as resolved. Only allowed for the reviewer
-   * who currently holds the file (Coordinator/Master) or the Admin.
-   * Backend rejects with 400/403/409 if the comment is not a pending
-   * revision.
+   * Mark a revision comment as resolved. Only the user who created the
+   * revision may resolve it (while holding the document, per backend rules).
    */
   resolveComment(
     fileId: number,

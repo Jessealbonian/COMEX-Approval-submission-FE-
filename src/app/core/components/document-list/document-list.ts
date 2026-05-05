@@ -97,7 +97,7 @@ export class DocumentList implements OnInit {
       name: f.original_name,
       title: f.title,
       documentType,
-      typeLabel: documentTypeLabel(documentType),
+      typeLabel: documentTypeLabel(documentType, f.custom_type_label),
       submittedBy: f.uploaded_by.name,
       submittedOn: new Date(f.created_at),
       status: f.status,

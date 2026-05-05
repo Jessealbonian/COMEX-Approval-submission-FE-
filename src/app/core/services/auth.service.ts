@@ -36,9 +36,17 @@ export class AuthService {
   readonly user = this._user.asReadonly();
   readonly isLoggedIn = computed(() => this._user() !== null);
   readonly role = computed<RoleName | null>(() => this._user()?.role ?? null);
-  readonly roleLevel = computed<RoleLevel | null>(
-    () => (this._user()?.role_level as RoleLevel | undefined) ?? null
-  );
+  /**
+   * Always numeric (1–4). Some API/storage paths may deserialize role_level
+   * as a string; strict equality in guards / file-review would otherwise hide
+   * actions (Forward, etc.) for all reviewer roles.
+   */
+  readonly roleLevel = computed<RoleLevel | null>(() => {
+    const raw = this._user()?.role_level;
+    if (raw == null) return null;
+    const n = Number(raw);
+    return n >= 1 && n <= 4 ? (n as RoleLevel) : null;
+  });
 
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http
@@ -133,6 +141,17 @@ export class AuthService {
   private persistSession(token: string, user: AuthUser): void {
     this.storage.set(TOKEN_KEY, token);
     this.persistUser(user);
+  }
+
+  /**
+   * Update the cached session user (e.g. after the Principal edits their own
+   * name/email in Account Management) without issuing a full /auth/me round-trip.
+   */
+  mergeStoredUser(partial: Partial<AuthUser>): void {
+    const cur = this._user();
+    if (!cur) return;
+    const next: AuthUser = { ...cur, ...partial };
+    this.persistUser(next);
   }
 
   private persistUser(user: AuthUser): void {

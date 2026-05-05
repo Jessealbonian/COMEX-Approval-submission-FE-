@@ -17,6 +17,7 @@ import { Documents } from './teacher/documents/documents';
 import { File } from './teacher/file/file';
 import { Home } from './teacher/home/home';
 import { Upload } from './teacher/upload/upload';
+import { Profile } from './profile/profile';
 
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
@@ -38,6 +39,12 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
 
   { path: 'login', component: SharedLogin, canActivate: [loginGuard] },
+
+  {
+    path: 'profile',
+    component: Profile,
+    canActivate: [authGuard, roleGuard(1, 2, 3)],
+  },
 
   // Admin (Principal) - role 4
   {
