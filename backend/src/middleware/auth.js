@@ -40,7 +40,7 @@ async function authenticate(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      `SELECT id, name, email, role_level, is_active, token_version
+      `SELECT id, name, email, role_level, teacher_rank, is_active, token_version
          FROM users WHERE id = ? LIMIT 1`,
       [payload.sub]
     );
@@ -59,6 +59,7 @@ async function authenticate(req, res, next) {
       name: user.name,
       email: user.email,
       role_level: Number(user.role_level),
+      teacher_rank: user.teacher_rank == null ? null : Number(user.teacher_rank),
       token_version: Number(user.token_version),
     };
     next();

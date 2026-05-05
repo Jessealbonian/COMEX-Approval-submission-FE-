@@ -7,6 +7,8 @@ export interface AuthUser {
   email: string;
   role: RoleName;
   role_level: RoleLevel;
+  /** Skill level 1–7 for Teacher, Coordinator, and Master (same column as API `teacher_rank`). */
+  teacher_rank?: number | null;
 }
 
 /** Extended user row from `/api/users` or `/users/me/profile` (excluding password hash). */

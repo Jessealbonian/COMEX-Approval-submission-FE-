@@ -1,7 +1,10 @@
 <section class="dashboard">
   <header class="dashboard-header">
     <div>
-      <p class="eyebrow">Master Console<span *ngIf="roleLevel"> · Role level {{ roleLevel }}</span></p>
+      <p class="eyebrow">
+        Master Console<span *ngIf="roleLevel"> · Role level {{ roleLevel }}</span
+        ><span *ngIf="masterSkillLevel != null"> · Master level {{ masterSkillLevel }}</span>
+      </p>
       <h1>Welcome back, {{ userName }}</h1>
       <p class="subtitle">Review DLP files after the Coordinator clears them. Older Examination items may still appear if they were already routed to Master.</p>
     </div>

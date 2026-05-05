@@ -36,7 +36,7 @@ async function login(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      `SELECT id, name, email, password_hash, role_level, is_active, token_version
+      `SELECT id, name, email, password_hash, role_level, teacher_rank, is_active, token_version
          FROM users WHERE email = ? LIMIT 1`,
       [email]
     );
@@ -70,6 +70,7 @@ async function login(req, res, next) {
         name: user.name,
         email: user.email,
         role_level: user.role_level,
+        teacher_rank: user.teacher_rank == null ? null : Number(user.teacher_rank),
         role,
       },
       redirect: redirectFor(user.role_level),
@@ -102,6 +103,7 @@ async function me(req, res) {
       name: req.user.name,
       email: req.user.email,
       role_level: req.user.role_level,
+      teacher_rank: req.user.teacher_rank == null ? null : Number(req.user.teacher_rank),
       role: roleName(req.user.role_level),
     },
   });

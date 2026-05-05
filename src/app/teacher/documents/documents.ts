@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { FileService } from '../../core/services/file.service';
@@ -39,7 +40,7 @@ interface DocRow {
 @Component({
   selector: 'app-documents',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './documents.html',
   styleUrl: './documents.css',
 })
@@ -50,6 +51,8 @@ export class Documents implements OnInit {
   rows: DocRow[] = [];
   readonly loading = signal(false);
   readonly errorMessage = signal('');
+  searchDraft = '';
+  appliedSearchNorm = '';
 
   ngOnInit(): void {
     this.loadDocuments();
@@ -109,6 +112,43 @@ export class Documents implements OnInit {
 
   openDocument(row: DocRow): void {
     void this.router.navigate(['/teacher/file'], { queryParams: { id: row.id } });
+  }
+
+  applySearch(): void {
+    this.appliedSearchNorm = this.searchDraft.trim().toLowerCase();
+  }
+
+  clearSearch(): void {
+    this.searchDraft = '';
+    this.appliedSearchNorm = '';
+  }
+
+  get displayRows(): DocRow[] {
+    const q = this.appliedSearchNorm;
+    if (!q) return this.rows;
+    return this.rows.filter((r) => this.rowMatchesSearch(r, q));
+  }
+
+  private rowMatchesSearch(r: DocRow, q: string): boolean {
+    const blob = [
+      String(r.id),
+      r.documentTypeLabel,
+      r.name,
+      r.submittedBy,
+      String(r.submittedOn),
+      r.coordChecked,
+      r.coordStatus,
+      r.step2Header,
+      r.step2Checked,
+      r.step2Status,
+      r.step3Header,
+      r.step3Checked,
+      r.step3Status,
+      r.revisions,
+      String(r.current_level),
+      r.status,
+    ].join('\n');
+    return blob.toLowerCase().includes(q);
   }
 
   private toRow(file: FileDoc, comments: FileComment[]): DocRow {

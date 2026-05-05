@@ -57,6 +57,18 @@
                 <span>Teacher level {{ u.teacher_rank }}</span>
               </div>
             }
+            @if (isCoordinatorRole(u) && u.teacher_rank != null && u.teacher_rank >= 1) {
+              <div class="meta-item">
+                <mat-icon>grading</mat-icon>
+                <span>Coordinator level {{ u.teacher_rank }}</span>
+              </div>
+            }
+            @if (isMasterRole(u) && u.teacher_rank != null && u.teacher_rank >= 1) {
+              <div class="meta-item">
+                <mat-icon>grading</mat-icon>
+                <span>Master level {{ u.teacher_rank }}</span>
+              </div>
+            }
             @if (isCoordinatorOrMaster(u)) {
               <div class="meta-item">
                 <mat-icon>layers</mat-icon>
@@ -117,6 +129,24 @@
                       <div class="info-label">
                         <mat-icon>grading</mat-icon>
                         <span>Teacher level</span>
+                      </div>
+                      <div class="info-value">{{ u.teacher_rank }}</div>
+                    </div>
+                  }
+                  @if (isCoordinatorRole(u) && u.teacher_rank != null && u.teacher_rank >= 1) {
+                    <div class="info-item">
+                      <div class="info-label">
+                        <mat-icon>grading</mat-icon>
+                        <span>Coordinator level</span>
+                      </div>
+                      <div class="info-value">{{ u.teacher_rank }}</div>
+                    </div>
+                  }
+                  @if (isMasterRole(u) && u.teacher_rank != null && u.teacher_rank >= 1) {
+                    <div class="info-item">
+                      <div class="info-label">
+                        <mat-icon>grading</mat-icon>
+                        <span>Master level</span>
                       </div>
                       <div class="info-value">{{ u.teacher_rank }}</div>
                     </div>
@@ -186,19 +216,12 @@
                     </div>
                     <div class="info-value">{{ u.employee_id || '—' }}</div>
                   </div>
-                  <div class="info-item">
+                  <div class="info-item full-span">
                     <div class="info-label">
                       <mat-icon>meeting_room</mat-icon>
                       <span>Office / room</span>
                     </div>
                     <div class="info-value">{{ u.office_room || '—' }}</div>
-                  </div>
-                  <div class="info-item full-span">
-                    <div class="info-label">
-                      <mat-icon>schedule</mat-icon>
-                      <span>Work schedule</span>
-                    </div>
-                    <div class="info-value">{{ u.work_schedule || '—' }}</div>
                   </div>
                 </div>
               </div>
@@ -301,13 +324,13 @@
             <mat-label>Employee ID</mat-label>
             <input matInput formControlName="employee_id" />
           </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="field-tall">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="field-tall grid-span-2"
+          >
             <mat-label>Office / room</mat-label>
             <input matInput formControlName="office_room" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="field-tall">
-            <mat-label>Work schedule</mat-label>
-            <textarea matInput formControlName="work_schedule" rows="2"></textarea>
           </mat-form-field>
         </div>
       </div>

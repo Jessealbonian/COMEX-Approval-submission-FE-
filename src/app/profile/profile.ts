@@ -77,7 +77,6 @@ export class Profile implements OnInit {
     emergency_contact_name: [''],
     emergency_contact_phone: [''],
     office_room: [''],
-    work_schedule: [''],
     civil_status: [''],
     nationality: [''],
     notes_other: [''],
@@ -114,7 +113,6 @@ export class Profile implements OnInit {
       emergency_contact_name: u.emergency_contact_name ?? '',
       emergency_contact_phone: u.emergency_contact_phone ?? '',
       office_room: u.office_room ?? '',
-      work_schedule: u.work_schedule ?? '',
       civil_status: normalizeCivilStatusForForm(u.civil_status),
       nationality: u.nationality ?? '',
       notes_other: u.notes_other ?? '',
@@ -158,6 +156,14 @@ export class Profile implements OnInit {
 
   isTeacherRole(u: UserPublicProfile): boolean {
     return Number(u.role_level) === 1;
+  }
+
+  isCoordinatorRole(u: UserPublicProfile): boolean {
+    return Number(u.role_level) === 2;
+  }
+
+  isMasterRole(u: UserPublicProfile): boolean {
+    return Number(u.role_level) === 3;
   }
 
   goBack(): void {
@@ -205,7 +211,6 @@ export class Profile implements OnInit {
       emergency_contact_name: nzEmpty(this.editForm.value.emergency_contact_name),
       emergency_contact_phone: nzEmpty(this.editForm.value.emergency_contact_phone),
       office_room: nzEmpty(this.editForm.value.office_room),
-      work_schedule: nzEmpty(this.editForm.value.work_schedule),
       civil_status: nzEmpty(this.editForm.value.civil_status),
       nationality: nzEmpty(this.editForm.value.nationality),
       notes_other: nzEmpty(this.editForm.value.notes_other),

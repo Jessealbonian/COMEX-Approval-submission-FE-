@@ -68,14 +68,15 @@ function assertTeacherUsesGmail(email, roleLevel) {
 function parseTeacherRankInput(value, roleLevel) {
   if (value === undefined) return undefined;
   if (value === null || value === '') {
-    return Number(roleLevel) === ROLES.TEACHER ? null : null;
+    return null;
   }
   const n = Number(value);
   if (!Number.isInteger(n) || n < 1 || n > 7) {
     throw new HttpError(400, 'teacher_rank must be an integer from 1 to 7');
   }
-  if (Number(roleLevel) !== ROLES.TEACHER) {
-    throw new HttpError(400, 'teacher_rank applies only to Teacher accounts');
+  const rl = Number(roleLevel);
+  if (rl !== ROLES.TEACHER && rl !== ROLES.COORDINATOR && rl !== ROLES.MASTER) {
+    throw new HttpError(400, 'teacher_rank applies only to Teacher, Coordinator, and Master accounts');
   }
   return n;
 }
@@ -183,10 +184,20 @@ async function createUser(req, res, next) {
     assertTeacherUsesGmail(email, roleLevel);
 
     let teacherRank = null;
-    if (body.teacher_rank !== undefined && body.teacher_rank !== null && body.teacher_rank !== '') {
+    if (
+      roleLevel === ROLES.TEACHER ||
+      roleLevel === ROLES.COORDINATOR ||
+      roleLevel === ROLES.MASTER
+    ) {
+      if (body.teacher_rank === undefined || body.teacher_rank === null || body.teacher_rank === '') {
+        throw new HttpError(
+          400,
+          'teacher_rank (1–7) is required for Teacher, Coordinator, and Master accounts'
+        );
+      }
       teacherRank = parseTeacherRankInput(body.teacher_rank, roleLevel);
-    } else if (roleLevel === ROLES.TEACHER) {
-      throw new HttpError(400, 'teacher_rank is required for Teacher accounts (1–7)');
+    } else if (body.teacher_rank !== undefined && body.teacher_rank !== null && body.teacher_rank !== '') {
+      throw new HttpError(400, 'teacher_rank is only used for Teacher, Coordinator, and Master accounts');
     }
 
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
@@ -421,6 +432,22 @@ async function updateUser(req, res, next) {
           throw new HttpError(400, 'teacher_rank (1–7) is required when assigning Teacher role');
         }
       }
+      if (rl === ROLES.COORDINATOR && Number(row.role_level) !== ROLES.COORDINATOR) {
+        if (body.teacher_rank === undefined || body.teacher_rank === null || body.teacher_rank === '') {
+          throw new HttpError(
+            400,
+            'Coordinator level (teacher_rank 1–7) is required when assigning Coordinator role'
+          );
+        }
+      }
+      if (rl === ROLES.MASTER && Number(row.role_level) !== ROLES.MASTER) {
+        if (body.teacher_rank === undefined || body.teacher_rank === null || body.teacher_rank === '') {
+          throw new HttpError(
+            400,
+            'Master level (teacher_rank 1–7) is required when assigning Master role'
+          );
+        }
+      }
       effectiveRole = rl;
     }
 
@@ -453,7 +480,7 @@ async function updateUser(req, res, next) {
         const rl = Number(body.role_level);
         chunks.push('role_level = ?');
         params.push(rl);
-        if (rl !== ROLES.TEACHER) {
+        if (rl === ROLES.ADMIN) {
           chunks.push('teacher_rank = ?');
           params.push(null);
         }

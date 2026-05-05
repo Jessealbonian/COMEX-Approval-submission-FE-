@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { FileService } from '../../services/file.service';
@@ -30,7 +31,7 @@ interface ListRow {
 @Component({
   selector: 'app-document-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './document-list.html',
   styleUrl: './document-list.css',
 })
@@ -61,6 +62,10 @@ export class DocumentList implements OnInit {
   rows: ListRow[] = [];
   readonly loading = signal(false);
   readonly errorMessage = signal('');
+  /** Text in the search box (applied when Search runs). */
+  searchDraft = '';
+  /** Lowercase trimmed filter substring. */
+  appliedSearchNorm = '';
 
   ngOnInit(): void {
     this.load();
@@ -84,10 +89,38 @@ export class DocumentList implements OnInit {
       });
   }
 
+  applySearch(): void {
+    this.appliedSearchNorm = this.searchDraft.trim().toLowerCase();
+  }
+
+  clearSearch(): void {
+    this.searchDraft = '';
+    this.appliedSearchNorm = '';
+  }
+
+  get displayRows(): ListRow[] {
+    const q = this.appliedSearchNorm;
+    if (!q) return this.rows;
+    return this.rows.filter((r) => this.rowMatchesSearch(r, q));
+  }
+
   open(row: ListRow): void {
     void this.router.navigate([this.detailRoute], {
       queryParams: { id: row.id },
     });
+  }
+
+  private rowMatchesSearch(r: ListRow, q: string): boolean {
+    const blob = [
+      String(r.id),
+      r.title,
+      r.name,
+      r.typeLabel,
+      r.submittedBy,
+      r.statusLabel,
+      String(r.currentLevel),
+    ].join('\n');
+    return blob.toLowerCase().includes(q);
   }
 
   private toRow(f: FileDoc): ListRow {

@@ -130,6 +130,10 @@ export class Account implements OnInit {
 
   accounts: AccountRow[] = [];
 
+  accountSearchDraft = '';
+
+  appliedAccountSearchNorm = '';
+
 
 
   readonly loading = signal(false);
@@ -343,7 +347,11 @@ export class Account implements OnInit {
 
           userLevel: lvl,
 
-          teacher_level: (u.teacher_rank ?? 1) as (typeof TEACHER_LEVELS)[number],
+          teacher_level: ((u.role_level === 1 ||
+          u.role_level === 2 ||
+          u.role_level === 3
+            ? u.teacher_rank
+            : null) ?? 1) as (typeof TEACHER_LEVELS)[number],
 
           is_active: Boolean(Number(u.is_active ?? 1)),
 
@@ -447,37 +455,85 @@ export class Account implements OnInit {
 
 
 
-  showTeacherLevel(): boolean {
+  showRankLevel(): boolean {
 
-    return this.formData.userLevel === 'Teacher';
+    return (
+
+      this.formData.userLevel === 'Teacher' ||
+
+      this.formData.userLevel === 'Coordinator' ||
+
+      this.formData.userLevel === 'Master'
+
+    );
 
   }
 
 
 
-  /** Table cell: teacher rank (1–7) or Coordinator/Master numeric role level. */
+  rankSelectLabel(): string {
+
+    if (this.formData.userLevel === 'Teacher') return 'Teacher level (1–7)';
+
+    if (this.formData.userLevel === 'Coordinator') return 'Coordinator level (1–7)';
+
+    return 'Master level (1–7)';
+
+  }
+
+
+
+  /** Table cell: Teacher / Coordinator / Master skill rank (1–7). */
 
   accountLevelDisplay(row: AccountRow): string {
 
-    if (row.role_level === 1) {
+    if (row.role_level === 1 || row.role_level === 2 || row.role_level === 3) {
 
       return row.teacher_rank != null ? String(row.teacher_rank) : '—';
 
     }
 
-    if (row.role_level === 2) {
-
-      return `Role level 2`;
-
-    }
-
-    if (row.role_level === 3) {
-
-      return `Role level 3`;
-
-    }
-
     return '—';
+
+  }
+
+
+
+  applyAccountSearch(): void {
+
+    this.appliedAccountSearchNorm = this.accountSearchDraft.trim().toLowerCase();
+
+  }
+
+
+
+  clearAccountSearch(): void {
+
+    this.accountSearchDraft = '';
+
+    this.appliedAccountSearchNorm = '';
+
+  }
+
+
+
+  get filteredAccounts(): AccountRow[] {
+
+    const q = this.appliedAccountSearchNorm;
+
+    if (!q) return this.accounts;
+
+    return this.accounts.filter((row) => this.accountRowMatches(row, q));
+
+  }
+
+
+
+  private accountRowMatches(row: AccountRow, q: string): boolean {
+
+    const blob = [String(row.id), row.email, row.name, row.userLevel, this.accountLevelDisplay(row)].join('\n');
+
+    return blob.toLowerCase().includes(q);
 
   }
 
@@ -543,7 +599,7 @@ export class Account implements OnInit {
 
     };
 
-    if (userLevel === 'Teacher') {
+    if (userLevel === 'Teacher' || userLevel === 'Coordinator' || userLevel === 'Master') {
 
       payload.teacher_rank = Number(this.formData.teacher_level);
 
@@ -625,13 +681,13 @@ export class Account implements OnInit {
 
       }
 
-      if (userLevel === 'Teacher') {
+      if (userLevel === 'Teacher' || userLevel === 'Coordinator' || userLevel === 'Master') {
 
         const tr = Number(this.formData.teacher_level);
 
         if (!Number.isInteger(tr) || tr < 1 || tr > 7) {
 
-          this.errorMessage.set('Teacher level must be 1–7.');
+          this.errorMessage.set('Teacher, Coordinator, or Master level must be 1–7.');
 
           return;
 
@@ -649,7 +705,13 @@ export class Account implements OnInit {
 
         role_level: rl,
 
-        teacher_rank: userLevel === 'Teacher' ? Number(this.formData.teacher_level) : null,
+        teacher_rank:
+
+          userLevel === 'Teacher' || userLevel === 'Coordinator' || userLevel === 'Master'
+
+            ? Number(this.formData.teacher_level)
+
+            : null,
 
         is_active: this.formData.is_active,
 

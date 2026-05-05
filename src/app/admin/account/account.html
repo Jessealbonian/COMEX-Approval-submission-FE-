@@ -10,8 +10,10 @@
 
       <p class="subtitle">
         Create and manage <strong>account</strong> records for Teachers, Coordinators, and Masters (name, email,
-        password, role, teacher rank, and Coordinator/Master role level). Teachers must use Gmail (@gmail.com). Users in
-        those roles maintain their own contact and profile details on the <strong>Profile</strong> page.
+        password, role, and a numeric <strong>1–7 skill level</strong> for Teachers, Coordinators, and Masters).
+        Teachers must use Gmail (@gmail.com). Users in those roles maintain their own contact and profile details on
+        the
+        <strong>Profile</strong> page.
       </p>
     </div>
 
@@ -34,6 +36,22 @@
 
     <h2>Accounts</h2>
 
+    <div class="accounts-toolbar" *ngIf="!loading()">
+      <label class="accounts-search-label" for="accounts-search-input">Search</label>
+      <input
+        id="accounts-search-input"
+        type="search"
+        name="accountsSearch"
+        class="accounts-search-input"
+        [(ngModel)]="accountSearchDraft"
+        (keydown.enter)="applyAccountSearch()"
+        placeholder="ID, email, name, role, skill…"
+        autocomplete="off"
+      />
+      <button type="button" class="accounts-search-btn" (click)="applyAccountSearch()">Search</button>
+      <button type="button" class="accounts-clear-btn" *ngIf="appliedAccountSearchNorm" (click)="clearAccountSearch()">Clear</button>
+    </div>
+
 
 
     <p class="muted" *ngIf="loading()">Loading accounts...</p>
@@ -54,7 +72,7 @@
 
           <th>User level</th>
 
-          <th>Teacher rank / role level</th>
+          <th>Skill level (1–7)</th>
 
           <th>Actions</th>
 
@@ -64,7 +82,7 @@
 
       <tbody>
 
-        <tr *ngFor="let account of accounts">
+        <tr *ngFor="let account of filteredAccounts">
 
           <td class="id">{{ account.id }}</td>
 
@@ -129,9 +147,10 @@
         </tr>
 
         <tr *ngIf="accounts.length === 0">
-
           <td colspan="6" class="muted">No accounts yet.</td>
-
+        </tr>
+        <tr *ngIf="accounts.length > 0 && filteredAccounts.length === 0">
+          <td colspan="6" class="muted">No accounts match your search.</td>
         </tr>
 
       </tbody>
@@ -323,11 +342,11 @@
 
             class="field-tall"
 
-            *ngIf="showTeacherLevel() && !isEditingPrincipalSelf"
+            *ngIf="showRankLevel() && !isEditingPrincipalSelf"
 
           >
 
-            <mat-label>Teacher level (1–7)</mat-label>
+            <mat-label>{{ rankSelectLabel() }}</mat-label>
 
             <mat-select
 

@@ -28,6 +28,13 @@ export class Dashboard implements OnInit {
     return Number(this.auth.roleLevel() ?? 0);
   }
 
+  /** 1–7 skill level stored as teacher_rank (same field as Teachers/Coordinators). */
+  get masterSkillLevel(): number | null {
+    const tr = this.auth.user()?.teacher_rank;
+    const n = tr == null ? NaN : Number(tr);
+    return Number.isInteger(n) && n >= 1 && n <= 7 ? n : null;
+  }
+
   awaitingMe = 0;
   total = 0;
   queue: FileDoc[] = [];
