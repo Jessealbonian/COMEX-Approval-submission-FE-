@@ -14,6 +14,49 @@ const mysql = require('mysql2/promise');
 const env = require('../config/env');
 
 const ADDITIVE_MIGRATIONS = [
+  // Per-level rank (1–7) for teachers/coordinators/masters; NULL for principals.
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`teacher_rank\` TINYINT UNSIGNED NULL
+     AFTER \`role_level\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`mobile_phone\` VARCHAR(40) NULL
+     AFTER \`teacher_rank\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`telephone\` VARCHAR(40) NULL
+     AFTER \`mobile_phone\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`address\` TEXT NULL
+     AFTER \`telephone\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`department_subject\` VARCHAR(255) NULL
+     AFTER \`address\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`position_title\` VARCHAR(255) NULL
+     AFTER \`department_subject\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`employee_id\` VARCHAR(100) NULL
+     AFTER \`position_title\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`emergency_contact_name\` VARCHAR(150) NULL
+     AFTER \`employee_id\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`emergency_contact_phone\` VARCHAR(40) NULL
+     AFTER \`emergency_contact_name\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`office_room\` VARCHAR(120) NULL
+     AFTER \`emergency_contact_phone\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`work_schedule\` VARCHAR(500) NULL
+     AFTER \`office_room\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`civil_status\` VARCHAR(50) NULL
+     AFTER \`work_schedule\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`nationality\` VARCHAR(100) NULL
+     AFTER \`civil_status\``,
+  `ALTER TABLE \`users\`
+     ADD COLUMN \`notes_other\` TEXT NULL
+     AFTER \`nationality\``,
   // token_version was added after the initial schema. Use try/catch on
   // duplicate column to keep this script idempotent.
   `ALTER TABLE \`users\`

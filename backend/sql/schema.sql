@@ -34,6 +34,22 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email`         VARCHAR(190) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `role_level`    TINYINT UNSIGNED NOT NULL,
+  -- Rank 1–7 for Teacher / Coordinator / Master workflow ordering; NULL for Principal (4).
+  `teacher_rank`  TINYINT UNSIGNED NULL,
+  -- Optional HR / profile fields (self-editable via /users/me/profile for non‑Principal roles).
+  `mobile_phone`  VARCHAR(40) NULL,
+  `telephone`     VARCHAR(40) NULL,
+  `address`       TEXT NULL,
+  `department_subject` VARCHAR(255) NULL,
+  `position_title` VARCHAR(255) NULL,
+  `employee_id`   VARCHAR(100) NULL,
+  `emergency_contact_name` VARCHAR(150) NULL,
+  `emergency_contact_phone` VARCHAR(40) NULL,
+  `office_room`   VARCHAR(120) NULL,
+  `work_schedule` VARCHAR(500) NULL,
+  `civil_status`  VARCHAR(50) NULL,
+  `nationality`   VARCHAR(100) NULL,
+  `notes_other`   TEXT NULL,
   `is_active`     TINYINT(1) NOT NULL DEFAULT 1,
   -- token_version is the JWT-revocation counter. Every issued JWT carries
   -- the current value; on logout we increment it, which immediately
@@ -46,7 +62,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_users_email` (`email`),
   KEY `ix_users_role_level` (`role_level`),
-  CONSTRAINT `chk_users_role_level` CHECK (`role_level` BETWEEN 1 AND 4)
+  CONSTRAINT `chk_users_role_level` CHECK (`role_level` BETWEEN 1 AND 4),
+  CONSTRAINT `chk_users_teacher_rank` CHECK (`teacher_rank` IS NULL OR `teacher_rank` BETWEEN 1 AND 7)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
